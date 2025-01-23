@@ -79,7 +79,7 @@ export default function Home() {
               <p className={"text-gray-600"}>Drag and drop a file here or click to select a file</p>
             )}
           </div>
-          { uploadedUrl ?? <span className={"select-all"}>{uploadedUrl}</span> }
+          { uploadedUrl && <span className={"select-all"}>{uploadedUrl}</span> }
           <Button onClick={handleUpload}>
             Upload
           </Button>
