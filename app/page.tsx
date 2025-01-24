@@ -3,12 +3,36 @@
 import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { toBlobURL } from "@ffmpeg/util";
+import CheckboxLabel from "@/app/components/CheckboxLabel";
+import { ConvertToGif } from "@/lib/gifConvert";
+
+const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "video/mp4"]);
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [ffmpegLoading, setFfmpegLoading] = useState(false);
+  const [convertGif, setConvertGif] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const ffmpeg = new FFmpeg();
+
+  const load = async () => {
+    if (ffmpeg.loaded || ffmpegLoading) return;
+    setFfmpegLoading(true);
+    const baseURL = "https://cdn.0016.cz";
+    ffmpeg.on("log", ({ message }) => {
+      console.log(message);
+    });
+
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm")
+    });
+  };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -41,10 +65,20 @@ export default function Home() {
     }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (selectedFile) {
       const formData = new FormData();
-      formData.set("file", selectedFile);
+
+      let file: File;
+      if (convertGif) {
+        console.log("Converting to gif");
+        await load();
+        file = await ConvertToGif(ffmpeg, selectedFile);
+      } else {
+        file = selectedFile;
+      }
+
+      formData.set("file", file);
 
       const req = new XMLHttpRequest();
       req.open("POST", "/api/upload");
@@ -59,7 +93,7 @@ export default function Home() {
           setUploadedUrl(data.url);
           setUploadProgress(0);
         }
-      }
+      };
       req.send(formData);
     }
   };
@@ -90,6 +124,7 @@ export default function Home() {
           </div>
           {uploadedUrl && <span className={"select-all"}>{uploadedUrl}</span>}
           {uploadProgress !== 0 && <Progress className={"transition-all duration-150 hidden"} value={uploadProgress} />}
+          <CheckboxLabel text={"Convert to GIF"} setChecked={setConvertGif} disabled={!GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? "")} />
           <Button onClick={handleUpload}>
             Upload
           </Button>
