@@ -89,7 +89,7 @@ export default function Home() {
             )}
           </div>
           {uploadedUrl && <span className={"select-all"}>{uploadedUrl}</span>}
-          {/*{uploadProgress !== 0 && <Progress className={"transition-all duration-150"} value={uploadProgress} />}*/}
+          {uploadProgress !== 0 && <Progress className={"transition-all duration-150 hidden"} value={uploadProgress} />}
           <Button onClick={handleUpload}>
             Upload
           </Button>
