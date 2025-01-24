@@ -14,6 +14,13 @@ const MAX_SIZE = 250000000;
 
 export async function POST(request: NextRequest) {
   try {
+    if (!request.headers.get("Content-Type")?.startsWith("multipart/form-data")) {
+      return NextResponse.json(
+        { error: "Wrong Content-Type (Use multipart/form-data to upload)." },
+        { status: 400 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
@@ -24,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
 
     if (file.size > MAX_SIZE) return NextResponse.json(
-      { error: "File is over limit (250MB max)."},
+      { error: "File is over limit (250MB max)." },
       { status: 400 }
     );
 

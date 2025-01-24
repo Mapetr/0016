@@ -2,10 +2,12 @@
 
 import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -44,14 +46,21 @@ export default function Home() {
       const formData = new FormData();
       formData.set("file", selectedFile);
 
-      fetch("/api/upload", {
-        method: "POST",
-        body: formData
-      }).then(async resp => {
-        setUploadedUrl((await resp.json()).url);
-      });
+      const req = new XMLHttpRequest();
+      req.open("POST", "/api/upload");
+      req.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return;
 
-      setSelectedFile(null);
+        setUploadProgress((event.loaded / event.total) * 100);
+      };
+      req.onreadystatechange = () => {
+        if (req.readyState === XMLHttpRequest.DONE) {
+          const data = JSON.parse(req.responseText);
+          setUploadedUrl(data.url);
+          setUploadProgress(0);
+        }
+      }
+      req.send(formData);
     }
   };
 
@@ -79,7 +88,8 @@ export default function Home() {
               <p className={"text-gray-600"}>Drag and drop a file here or click to select a file</p>
             )}
           </div>
-          { uploadedUrl && <span className={"select-all"}>{uploadedUrl}</span> }
+          {uploadedUrl && <span className={"select-all"}>{uploadedUrl}</span>}
+          {uploadProgress !== 0 && <Progress className={"transition-all duration-150 hidden"} value={uploadProgress} />}
           <Button onClick={handleUpload}>
             Upload
           </Button>
