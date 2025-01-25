@@ -123,14 +123,6 @@ export default function Home() {
 
         setUploadProgress((event.loaded / event.total) * 100);
       };
-      req.onreadystatechange = () => {
-        if (req.readyState === XMLHttpRequest.DONE) {
-          const data = JSON.parse(req.responseText);
-          setUploadedUrl(data.url);
-          setUploadProgress(0);
-          setMessageProgress("");
-        }
-      };
       req.onload = () => {
         setUploadProgress(0);
         if (req.status !== 200) {
