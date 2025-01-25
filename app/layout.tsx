@@ -25,6 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+    <head>
+      <meta name="darkreader-lock" />
+    </head>
     <body
       className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}
     >
