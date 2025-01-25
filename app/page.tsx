@@ -8,7 +8,7 @@ import { toBlobURL } from "@ffmpeg/util";
 import CheckboxLabel from "@/app/components/CheckboxLabel";
 import { ConvertToGif } from "@/lib/gifConvert";
 
-const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "video/mp4"]);
+const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "video/webm", "video/mp4", "video/mpeg"]);
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
