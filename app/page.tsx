@@ -28,10 +28,18 @@ export default function Home() {
       console.log(message);
     });
 
-    await ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm")
-    });
+    if (crossOriginIsolated) {
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpegwasm-mt/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpegwasm-mt/ffmpeg-core.wasm`, "application/wasm"),
+        workerURL: await toBlobURL(`${baseURL}/ffmpegwasm-mt/ffmpeg-core.worker.js`, "text/javascript")
+      });
+    } else {
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpegwasm-st/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpegwasm-st/ffmpeg-core.wasm`, "application/wasm")
+      });
+    }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
