@@ -139,7 +139,7 @@ export default function Home() {
         }
         setMessageProgress("");
         const url = new URL(uploadUrl);
-        setUploadedUrl(`${process.env.DESTINATION_URL}${url.pathname}`);
+        setUploadedUrl(`${process.env.NEXT_PUBLIC_DESTINATION_URL}${url.pathname}`);
       }
       req.send(file);
     }
