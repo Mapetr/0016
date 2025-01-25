@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { z } from "zod";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { FileData } from "@/lib/utils";
 
 const s3Client = new S3Client({
   region: process.env.S3_REGION,
@@ -13,12 +13,6 @@ const s3Client = new S3Client({
 });
 
 const MAX_SIZE = 250000000;
-
-export const FileData = z.object({
-  name: z.string(),
-  type: z.string(),
-  size: z.number()
-});
 
 export async function POST(request: NextRequest) {
   const data = FileData.parse(await request.json());

@@ -7,7 +7,7 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL } from "@ffmpeg/util";
 import CheckboxLabel from "@/app/components/CheckboxLabel";
 import { ConvertToGif } from "@/lib/gifConvert";
-import { FileData } from "@/app/api/upload/route";
+import { FileData } from "@/lib/utils";
 
 const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "video/webm", "video/mp4", "video/mpeg"]);
 
