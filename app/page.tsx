@@ -7,6 +7,7 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL } from "@ffmpeg/util";
 import CheckboxLabel from "@/app/components/CheckboxLabel";
 import { ConvertToGif } from "@/lib/gifConvert";
+import { FileData } from "@/app/api/upload/route";
 
 const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "video/webm", "video/mp4", "video/mpeg"]);
 
@@ -26,7 +27,7 @@ export default function Home() {
     ffmpeg.on("log", ({ message }) => {
       console.log(message);
     });
-    ffmpeg.on("progress", ({progress}) => {
+    ffmpeg.on("progress", ({ progress }) => {
       setUploadProgress(progress * 100);
     });
 
@@ -79,7 +80,6 @@ export default function Home() {
   const handleUpload = async () => {
     if (selectedFile) {
       setUploadedUrl("");
-      const formData = new FormData();
 
       let file: File;
       if (convertGif) {
@@ -91,10 +91,33 @@ export default function Home() {
       }
 
       setMessageProgress("Uploading");
-      formData.set("file", file);
+
+      const fileData = FileData.parse({
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+
+      const uploadUrl = await fetch("/api/upload", {
+        method: "POST",
+        body: JSON.stringify(fileData)
+      }).then(async res => {
+        if (!res.ok) {
+          console.error(await res.json());
+          return "";
+        }
+        return (await res.json()).url as string;
+      });
+
+      if (uploadUrl === "") {
+        setMessageProgress("Errored");
+        setUploadProgress(0);
+        return;
+      }
 
       const req = new XMLHttpRequest();
-      req.open("POST", "/api/upload");
+      req.open("PUT", uploadUrl);
+      req.setRequestHeader("Content-Type", fileData.type);
       req.upload.onprogress = (event) => {
         if (!event.lengthComputable) return;
 
@@ -108,7 +131,17 @@ export default function Home() {
           setMessageProgress("");
         }
       };
-      req.send(formData);
+      req.onload = () => {
+        setUploadProgress(0);
+        if (req.status !== 200) {
+          setMessageProgress("Failed to upload");
+          return;
+        }
+        setMessageProgress("");
+        const url = new URL(uploadUrl);
+        setUploadedUrl(`${process.env.DESTINATION_URL}${url.pathname}`);
+      }
+      req.send(file);
     }
   };
 
@@ -139,7 +172,8 @@ export default function Home() {
           {uploadedUrl && <span className={"select-all"}>{uploadedUrl}</span>}
           {uploadProgress !== 0 && <Progress className={"transition-all duration-150"} value={uploadProgress} />}
           {messageProgress !== "" && <span>{messageProgress}</span>}
-          <CheckboxLabel text={"Convert to GIF"} setChecked={setConvertGif} disabled={!GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? "")} />
+          <CheckboxLabel text={"Convert to GIF"} setChecked={setConvertGif}
+                         disabled={!GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? "")} />
           <Button onClick={handleUpload}>
             Upload
           </Button>
