@@ -3,12 +3,47 @@
 import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { toBlobURL } from "@ffmpeg/util";
+import CheckboxLabel from "@/app/components/CheckboxLabel";
+import { ConvertToGif } from "@/lib/gifConvert";
+
+const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "video/webm", "video/mp4", "video/mpeg"]);
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [messageProgress, setMessageProgress] = useState("");
+  const [convertGif, setConvertGif] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const ffmpeg = new FFmpeg();
+
+  const load = async () => {
+    if (ffmpeg.loaded) return;
+    setMessageProgress("Loading");
+    ffmpeg.on("log", ({ message }) => {
+      console.log(message);
+    });
+    ffmpeg.on("progress", ({progress}) => {
+      setUploadProgress(progress * 100);
+    });
+
+    if (crossOriginIsolated) {
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`/ffmpeg-mt/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`/ffmpeg-mt/ffmpeg-core.wasm`, "application/wasm"),
+        workerURL: await toBlobURL(`/ffmpeg-mt/ffmpeg-core.worker.js`, "text/javascript")
+      });
+    } else {
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`/ffmpeg-st/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`/ffmpeg-st/ffmpeg-core.wasm`, "application/wasm")
+      });
+    }
+    setMessageProgress("");
+  };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -41,10 +76,22 @@ export default function Home() {
     }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (selectedFile) {
+      setUploadedUrl("");
       const formData = new FormData();
-      formData.set("file", selectedFile);
+
+      let file: File;
+      if (convertGif) {
+        await load();
+        setMessageProgress("Converting");
+        file = await ConvertToGif(ffmpeg, selectedFile);
+      } else {
+        file = selectedFile;
+      }
+
+      setMessageProgress("Uploading");
+      formData.set("file", file);
 
       const req = new XMLHttpRequest();
       req.open("POST", "/api/upload");
@@ -58,8 +105,9 @@ export default function Home() {
           const data = JSON.parse(req.responseText);
           setUploadedUrl(data.url);
           setUploadProgress(0);
+          setMessageProgress("");
         }
-      }
+      };
       req.send(formData);
     }
   };
@@ -89,7 +137,9 @@ export default function Home() {
             )}
           </div>
           {uploadedUrl && <span className={"select-all"}>{uploadedUrl}</span>}
-          {uploadProgress !== 0 && <Progress className={"transition-all duration-150 hidden"} value={uploadProgress} />}
+          {uploadProgress !== 0 && <Progress className={"transition-all duration-150"} value={uploadProgress} />}
+          {messageProgress !== "" && <span>{messageProgress}</span>}
+          <CheckboxLabel text={"Convert to GIF"} setChecked={setConvertGif} disabled={!GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? "")} />
           <Button onClick={handleUpload}>
             Upload
           </Button>
