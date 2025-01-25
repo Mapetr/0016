@@ -52,18 +52,21 @@ export default function Home() {
     e.preventDefault();
     e.stopPropagation();
     e.currentTarget.classList.add("border-blue-500");
+    e.currentTarget.classList.remove("border-gray-400");
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     e.currentTarget.classList.remove("border-blue-500");
+    e.currentTarget.classList.add("border-gray-400");
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     e.currentTarget.classList.remove("border-blue-500");
+    e.currentTarget.classList.add("border-gray-400");
     const file = e.dataTransfer.files[0];
     setSelectedFile(file);
   };
