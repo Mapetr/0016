@@ -141,7 +141,7 @@ export default function Home() {
     <main>
       <div className={"flex justify-center items-center mx-8 min-h-screen"}>
         <div
-          className={"flex flex-col gap-8 rounded-xl border bg-card text-card-foreground text-center shadow-sm w-[40em] p-8 md:mx-auto"}>
+          className={"flex flex-col gap-8 rounded-xl border bg-card text-card-foreground text-center shadow-sm min-w-[40em] max-w-4xl p-8 md:mx-auto"}>
           <span className={"font-semibold leading-none tracking-tight"}>File uploader</span>
           <div
             className={"border-2 border-dashed border-gray-400 rounded-lg p-4 text-center cursor-pointer"}
