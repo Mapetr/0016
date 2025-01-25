@@ -8,6 +8,7 @@ import { toBlobURL } from "@ffmpeg/util";
 import CheckboxLabel from "@/app/components/CheckboxLabel";
 import { ConvertToGif } from "@/lib/gifConvert";
 import { FileData } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "video/webm", "video/mp4", "video/mpeg"]);
 
@@ -18,6 +19,7 @@ export default function Home() {
   const [messageProgress, setMessageProgress] = useState("");
   const [convertGif, setConvertGif] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const ffmpeg = new FFmpeg();
 
@@ -132,7 +134,7 @@ export default function Home() {
         setMessageProgress("");
         const url = new URL(uploadUrl);
         setUploadedUrl(`${process.env.NEXT_PUBLIC_DESTINATION_URL}${url.pathname}`);
-      }
+      };
       req.send(file);
     }
   };
@@ -161,7 +163,12 @@ export default function Home() {
               <p className={"text-gray-600"}>Drag and drop a file here or click to select a file</p>
             )}
           </div>
-          {uploadedUrl && <span className={"select-all"}>{uploadedUrl}</span>}
+          {uploadedUrl && <span className={"select-all"} onClick={async () => {
+            await navigator.clipboard.writeText(uploadedUrl);
+            toast({
+              title: "URL copied to clipboard"
+            });
+          }}>{uploadedUrl}</span>}
           {uploadProgress !== 0 && <Progress className={"transition-all duration-150"} value={uploadProgress} />}
           {messageProgress !== "" && <span>{messageProgress}</span>}
           <CheckboxLabel text={"Convert to GIF"} setChecked={setConvertGif}
