@@ -23,7 +23,6 @@ export default function Home() {
   const load = async () => {
     if (ffmpeg.loaded) return;
     setMessageProgress("Loading");
-    const baseURL = "https://cdn.0016.cz";
     ffmpeg.on("log", ({ message }) => {
       console.log(message);
     });
@@ -33,14 +32,14 @@ export default function Home() {
 
     if (crossOriginIsolated) {
       await ffmpeg.load({
-        coreURL: await toBlobURL(`${baseURL}/ffmpegwasm-mt/ffmpeg-core.js`, "text/javascript"),
-        wasmURL: await toBlobURL(`${baseURL}/ffmpegwasm-mt/ffmpeg-core.wasm`, "application/wasm"),
-        workerURL: await toBlobURL(`${baseURL}/ffmpegwasm-mt/ffmpeg-core.worker.js`, "text/javascript")
+        coreURL: await toBlobURL(`/ffmpeg-mt/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`/ffmpeg-mt/ffmpeg-core.wasm`, "application/wasm"),
+        workerURL: await toBlobURL(`/ffmpeg-mt/ffmpeg-core.worker.js`, "text/javascript")
       });
     } else {
       await ffmpeg.load({
-        coreURL: await toBlobURL(`${baseURL}/ffmpegwasm-st/ffmpeg-core.js`, "text/javascript"),
-        wasmURL: await toBlobURL(`${baseURL}/ffmpegwasm-st/ffmpeg-core.wasm`, "application/wasm")
+        coreURL: await toBlobURL(`/ffmpeg-st/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`/ffmpeg-st/ffmpeg-core.wasm`, "application/wasm")
       });
     }
     setMessageProgress("");
