@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { FileData } from "@/lib/utils";
 
 const s3Client = new S3Client({
   region: process.env.S3_REGION,
@@ -13,58 +15,30 @@ const s3Client = new S3Client({
 const MAX_SIZE = 250000000;
 
 export async function POST(request: NextRequest) {
+  const data = FileData.parse(await request.json());
+  const uploadPath = `${generateString(8)}/${data.name}`;
+
+  if (data.size > MAX_SIZE) return NextResponse.json(
+    { error: "File is too big" },
+    { status: 400 }
+  );
+
+  const command = new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET,
+    Key: uploadPath,
+    ContentLength: data.size,
+    ContentType: data.type
+  });
+
   try {
-    if (!request.headers.get("Content-Type")?.startsWith("multipart/form-data")) {
-      return NextResponse.json(
-        { error: "Wrong Content-Type (Use multipart/form-data to upload)." },
-        { status: 400 }
-      );
-    }
-
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-
-    if (!file)
-      return NextResponse.json(
-        { error: "No file received." },
-        { status: 400 }
-      );
-
-    if (file.size > MAX_SIZE) return NextResponse.json(
-      { error: "File is over limit (250MB max)." },
-      { status: 400 }
-    );
-
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = new Uint8Array(arrayBuffer);
-
-    const bucketName = process.env.S3_BUCKET_NAME;
-    if (!bucketName) {
-      console.error("No bucket name set");
-      return NextResponse.json(
-        { error: "Error uploading file." },
-        { status: 500 }
-      );
-    }
-    const key = `${generateString(8)}/${file.name}`;
-
-    const uploadParams = {
-      Bucket: bucketName,
-      Key: key,
-      Body: buffer,
-      ContentType: file.type
-    };
-
-    const uploadCommand = new PutObjectCommand(uploadParams);
-    await s3Client.send(uploadCommand);
-
-    const finalUrl = `${process.env.DESTINATION_URL}${key}`;
-
-    return NextResponse.json({ url: finalUrl }, { status: 200 });
-  } catch (e) {
-    console.error("Error uploading file: ", e);
     return NextResponse.json(
-      { error: "Error uploading file." },
+      { url: await getSignedUrl(s3Client, command, { expiresIn: 900 }) },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { error: "Failed to get presigned url" },
       { status: 500 }
     );
   }
