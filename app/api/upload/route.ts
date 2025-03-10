@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { FileData } from "@/lib/utils";
+import { FileData, generateString } from "@/lib/utils";
 
 const s3Client = new S3Client({
   region: process.env.S3_REGION,
@@ -15,7 +15,17 @@ const s3Client = new S3Client({
 const MAX_SIZE = 250000000;
 
 export async function POST(request: NextRequest) {
-  const data = FileData.parse(await request.json());
+  const parse = FileData.safeParse(await request.json());
+
+  if (!parse.success) {
+    return NextResponse.json(
+      {error: parse.error},
+      {status: 400}
+    )
+  }
+
+  const data = parse.data;
+
   const uploadPath = `${generateString(8)}/${data.name}`;
 
   if (data.size > MAX_SIZE) return NextResponse.json(
@@ -42,19 +52,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-function generateString(length: number) {
-  let result = "";
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const charactersLength = characters.length;
-  let counter = 0;
-  while (counter < length) {
-    result += characters.charAt(
-      Math.floor(Math.random() * charactersLength)
-    );
-    counter += 1;
-  }
-  return result;
 }
