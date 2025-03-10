@@ -2,7 +2,7 @@ import { Redis } from "@upstash/redis";
 import { NextRequest, NextResponse } from "next/server";
 import { generateString, Link } from "@/lib/utils";
 
-const redis = Redis.fromEnv();
+export const redis = Redis.fromEnv();
 
 export async function POST(request: NextRequest) {
     const parse = Link.safeParse(await request.json());
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     while (!urlOkay) {
         shortUrl = generateString(6);
-        urlOkay = redis.get(shortUrl) !== null;
+        urlOkay = await redis.get<string>(shortUrl) !== null;
     }
 
     redis.set(shortUrl, data.url);
