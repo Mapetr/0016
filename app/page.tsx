@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
@@ -142,6 +142,28 @@ export default function Home() {
     }
   };
 
+  // Listen for paste events to allow pasting files directly
+  useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.kind === "file") {
+          const file = item.getAsFile();
+          if (file) {
+            setSelectedFile(file);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => {
+      window.removeEventListener("paste", handlePaste);
+    };
+  }, []);
+
   return (
     <main>
       <div className={"flex justify-center items-center mx-8 min-h-screen"}>
@@ -163,7 +185,7 @@ export default function Home() {
             {selectedFile ? (
               <p className={"text-gray-600"}>{selectedFile.name}</p>
             ) : (
-              <p className={"text-gray-600"}>Drag and drop a file here or click to select a file</p>
+              <p className={"text-gray-600"}>Paste or drag and drop a file here or click to select a file</p>
             )}
           </div>
           {uploadedUrl && <span className={"select-all"} onClick={async () => {
