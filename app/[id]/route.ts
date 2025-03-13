@@ -1,5 +1,5 @@
+import { redis } from "@/lib/utils";
 import { redirect } from "next/navigation";
-import { redis } from "../api/link/route";
 import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest, {params}: {params: Promise<{ id: string }>}) {

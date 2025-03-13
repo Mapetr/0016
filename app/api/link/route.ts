@@ -1,8 +1,5 @@
-import { Redis } from "@upstash/redis";
 import { NextRequest, NextResponse } from "next/server";
-import { generateString, Link } from "@/lib/utils";
-
-export const redis = Redis.fromEnv();
+import { generateString, Link, redis } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
     const parse = Link.safeParse(await request.json());

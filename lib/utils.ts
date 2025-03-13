@@ -1,6 +1,9 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { z } from "zod";
+import { Redis } from "@upstash/redis";
+
+export const redis = Redis.fromEnv();
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

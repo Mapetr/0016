@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Link } from "@/lib/utils";
+import { toast } from "sonner";
 
 export function LinkShortener() {
     const [url, setUrl] = useState("");
