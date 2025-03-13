@@ -32,6 +32,7 @@ export function LinkShortener() {
             <span className={"font-semibold leading-none tracking-tight"}>Link shortener</span>
             {shortenedUrl && <span className={"select-all"} onClick={async () => {
                 await navigator.clipboard.writeText(shortenedUrl);
+                toast.success("Copied link to clipboard");
             }}>{shortenedUrl}</span>}
             <Input placeholder={"Enter your long URL"} onChange={(e) => {setUrl(e.target.value)}} />
             <Button onClick={handleShorten}>Shorten</Button>

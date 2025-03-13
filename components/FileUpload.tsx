@@ -6,6 +6,7 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL } from "@ffmpeg/util";
 import { FileData } from "@/lib/utils";
 import { ConvertToGif } from "@/lib/gifConvert";
+import { toast } from "sonner";
 
 const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "video/webm", "video/mp4", "video/mpeg"]);
 
@@ -183,6 +184,7 @@ export function FileUpload() {
       </div>
       {uploadedUrl && <span className={"select-all"} onClick={async () => {
         await navigator.clipboard.writeText(uploadedUrl);
+        toast.success("Copied link to clipboard");
       }}>{uploadedUrl}</span>}
       {uploadProgress !== 0 && <Progress className={"transition-all duration-150"} value={uploadProgress} />}
       {messageProgress !== "" && <span>{messageProgress}</span>}
