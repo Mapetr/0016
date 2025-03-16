@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (err) {
-    console.error(err);
+    client.captureException(err);
     return NextResponse.json(
       { error: "Failed to get presigned url" },
       { status: 500 }
