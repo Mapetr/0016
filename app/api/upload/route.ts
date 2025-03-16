@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { FileData } from "@/lib/utils";
+import PostHogClient from "@/app/posthog";
 
 const s3Client = new S3Client({
   region: process.env.S3_REGION,
@@ -15,24 +16,38 @@ const s3Client = new S3Client({
 const MAX_SIZE = 250000000;
 
 export async function POST(request: NextRequest) {
-  const data = FileData.parse(await request.json());
-  const uploadPath = `${generateString(8)}/${data.name}`;
-
-  if (data.size > MAX_SIZE) return NextResponse.json(
-    { error: "File is too big" },
-    { status: 400 }
-  );
-
-  const command = new PutObjectCommand({
-    Bucket: process.env.S3_BUCKET,
-    Key: uploadPath,
-    ContentLength: data.size,
-    ContentType: data.type
-  });
-
+  const client = PostHogClient();
   try {
+    const data = FileData.parse(await request.json());
+    const uploadPath = `${generateString(8)}/${data.name}`;
+
+    if (data.size > MAX_SIZE) return NextResponse.json(
+      { error: "File is too big" },
+      { status: 400 }
+    );
+
+    const command = new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET,
+      Key: uploadPath,
+      ContentLength: data.size,
+      ContentType: data.type
+    });
+
+    const shortUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
+
+    client.capture({
+      distinctId: "user",
+      event: "file upload",
+      properties: {
+        shortUrl: shortUrl,
+        type: data.type,
+        size: data.size,
+        $process_person_profile: false
+      }
+    });
+
     return NextResponse.json(
-      { url: await getSignedUrl(s3Client, command, { expiresIn: 900 }) },
+      { url: shortUrl },
       { status: 200 }
     );
   } catch (err) {
@@ -41,6 +56,8 @@ export async function POST(request: NextRequest) {
       { error: "Failed to get presigned url" },
       { status: 500 }
     );
+  } finally {
+    await client.shutdown();
   }
 }
 

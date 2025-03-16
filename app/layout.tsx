@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NoSSRWrapper from "@/app/NoSSRWrapper";
 import { Toaster } from "@/components/ui/toaster";
+import { PostHogProvider } from "@/app/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}
     >
     <NoSSRWrapper>
-      {children}
+      <PostHogProvider>
+        {children}
+      </PostHogProvider>
     </NoSSRWrapper>
     <Toaster />
     </body>
