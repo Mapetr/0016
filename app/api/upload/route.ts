@@ -31,17 +31,17 @@ export async function POST(request: NextRequest) {
 
     const uploadPath = `${generateString(8)}/${data.name}`;
 
-    if (data.size > MAX_SIZE) return NextResponse.json(
-      { error: "File is too big" },
-      { status: 400 }
-    );
+  if (data.size > MAX_SIZE) return NextResponse.json(
+    { error: "File is too big" },
+    { status: 400 }
+  );
 
-    const command = new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET,
-      Key: uploadPath,
-      ContentLength: data.size,
-      ContentType: data.type
-    });
+  const command = new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET,
+    Key: uploadPath,
+    ContentLength: data.size,
+    ContentType: data.type
+  });
 
     const shortUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
 
