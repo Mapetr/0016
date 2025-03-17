@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { FileData } from "@/lib/utils";
+import { FileData, generateString } from "@/lib/utils";
 import PostHogClient from "@/app/posthog";
 
 const s3Client = new S3Client({
@@ -18,20 +18,30 @@ const MAX_SIZE = 250000000;
 export async function POST(request: NextRequest) {
   const client = PostHogClient();
   try {
-    const data = FileData.parse(await request.json());
+    const parse = FileData.safeParse(await request.json());
+
+    if (!parse.success) {
+      return NextResponse.json(
+        { error: parse.error },
+        { status: 400 }
+      );
+    }
+
+    const data = parse.data;
+
     const uploadPath = `${generateString(8)}/${data.name}`;
 
-    if (data.size > MAX_SIZE) return NextResponse.json(
-      { error: "File is too big" },
-      { status: 400 }
-    );
+  if (data.size > MAX_SIZE) return NextResponse.json(
+    { error: "File is too big" },
+    { status: 400 }
+  );
 
-    const command = new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET,
-      Key: uploadPath,
-      ContentLength: data.size,
-      ContentType: data.type
-    });
+  const command = new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET,
+    Key: uploadPath,
+    ContentLength: data.size,
+    ContentType: data.type
+  });
 
     const shortUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
 
@@ -59,19 +69,4 @@ export async function POST(request: NextRequest) {
   } finally {
     await client.shutdown();
   }
-}
-
-function generateString(length: number) {
-  let result = "";
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const charactersLength = characters.length;
-  let counter = 0;
-  while (counter < length) {
-    result += characters.charAt(
-      Math.floor(Math.random() * charactersLength)
-    );
-    counter += 1;
-  }
-  return result;
 }
