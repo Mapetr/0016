@@ -18,10 +18,10 @@ export async function POST(request: NextRequest) {
 
     while (!urlOkay) {
         shortUrl = generateString(6);
-        urlOkay = await redis.get<string>(shortUrl) !== null;
+        urlOkay = await redis.get<string>(shortUrl) === null;
     }
 
-    redis.set(shortUrl, data.url);
+    await redis.set(shortUrl, data.url);
 
     return NextResponse.json(
         { url: `${process.env.DOMAIN}/${shortUrl}` },
