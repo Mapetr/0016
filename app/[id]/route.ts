@@ -1,4 +1,4 @@
-import { redis } from "@/lib/utils";
+import { redis } from "@/lib/server";
 import { redirect } from "next/navigation";
 import { NextRequest } from "next/server";
 

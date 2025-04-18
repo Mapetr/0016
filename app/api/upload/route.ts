@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { FileData, generateString } from "@/lib/utils";
+import { FileData } from "@/lib/utils";
 import PostHogClient from "@/app/posthog";
+import { generateString } from "@/lib/server";
 
 const s3Client = new S3Client({
   region: process.env.S3_REGION,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateString, Link, redis } from "@/lib/utils";
+import { Link } from "@/lib/utils";
+import { generateString, redis } from "@/lib/server";
 
 export async function POST(request: NextRequest) {
     const parse = Link.safeParse(await request.json());
