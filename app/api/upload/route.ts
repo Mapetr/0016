@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const uploadPath = `${generateString(8)}/${data.name}`;
 
-  if (data.size > MAX_SIZE) return NextResponse.json(
+  if (data.size > (Number(process.env.NEXT_PUBLIC_MAX_SIZE) ?? MAX_SIZE)) return NextResponse.json(
     { error: "File is too big" },
     { status: 400 }
   );

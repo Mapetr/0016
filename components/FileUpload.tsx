@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL } from "@ffmpeg/util";
-import { FileData } from "@/lib/utils";
+import { FileData, formatBytes } from "@/lib/utils";
 import { ConvertToGif } from "@/lib/gifConvert";
 import { toast } from "sonner";
 
@@ -193,7 +193,7 @@ export function FileUpload() {
       <Button onClick={handleUpload}>
         Upload
       </Button>
-      <span className={"text-secondary-foreground text-sm"}>Max 250MB file size</span>
+      <span className={"text-secondary-foreground text-sm"}>Max {formatBytes(Number(process.env.NEXT_PUBLIC_MAX_SIZE))} file size</span>
     </div>
   )
 }
