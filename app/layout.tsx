@@ -7,12 +7,12 @@ import { Toaster } from "@/components/ui/sonner";
 import {
   ClerkProvider,
   SignInButton,
-  SignUpButton,
   SignedIn,
   SignedOut,
   UserButton
 } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import ConvexClientProvider from "@/app/ConvexClientProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,19 +46,21 @@ export default function RootLayout({
     <NoSSRWrapper>
       <PostHogProvider>
         <ClerkProvider>
-          <header className="absolute top-0 right-0 flex justify-start items-center p-4 gap-4 h-16">
-            <SignedOut>
-              <SignInButton>
-                <Button className={"text-sm"} size={"sm"} aria-label="Sign in">
-                  Sign In
-                </Button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
-          </header>
-          {children}
+          <ConvexClientProvider>
+            <header className="absolute top-0 right-0 flex justify-start items-center p-4 gap-4 h-16">
+              <SignedOut>
+                <SignInButton>
+                  <Button className={"text-sm"} size={"sm"} aria-label="Sign in">
+                    Sign In
+                  </Button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton />
+              </SignedIn>
+            </header>
+            {children}
+          </ConvexClientProvider>
         </ClerkProvider>
       </PostHogProvider>
       <Toaster />
