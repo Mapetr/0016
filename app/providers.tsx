@@ -8,12 +8,20 @@ import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
+  if (process.env.NODE_ENV === "development") return (
+    <>
+      {children}
+    </>
+  );
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY as string, {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com",
       ui_host: "https://eu.posthog.com",
       person_profiles: "always",
-      capture_pageview: false // Disable automatic pageview capture, as we capture manually
+      capture_pageview: false, // Disable automatic pageview capture, as we capture manually
+
     });
   }, []);
 
