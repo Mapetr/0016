@@ -7,23 +7,39 @@ import { ColumnDef, getCoreRowModel } from "@tanstack/table-core";
 import { Doc } from "@/convex/_generated/dataModel";
 import { flexRender, useReactTable } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import Link from "next/link";
+import { formatBytes } from "@/lib/utils";
 
 const columns: ColumnDef<Doc<"files">>[] = [
   {
     accessorKey: "url",
-    header: "URL"
+    header: "URL",
+    cell: ({ row }) => {
+      return (
+        <Link className="cursor-pointer hover:underline overflow-hidden text-ellipsis whitespace-nowrap [direction:rtl] text-left max-w-32 sm:max-w-64 md:max-w-full block" href={row.original.url} target="_blank" rel="noopener noreferrer">{row.original.url}</Link>
+      )
+    }
   },
   {
     accessorKey: "size",
-    header: "Size"
+    header: "Size",
+    cell: ({ row }) => {
+      return formatBytes(row.original.size);
+    }
   },
   {
     accessorKey: "Type",
-    header: "Type"
+    header: "Type",
+    cell: ({ row }) => {
+      return row.original.type;
+    }
   },
   {
     accessorKey: "_creationTime",
-    header: "Created at"
+    header: "Created at",
+    cell: ({ row }) => {
+      return new Date(row.original._creationTime).toLocaleString();
+    }
   }
 ];
 
