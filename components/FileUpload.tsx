@@ -8,12 +8,14 @@ import { FileData, formatBytes } from "@/lib/utils";
 import { ConvertToGif } from "@/lib/gifConvert";
 import { toast } from "sonner";
 import { useAuth } from "@clerk/nextjs";
-import { useConvexAuth } from "convex/react";
+import { useAction, useConvexAuth } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "video/webm", "video/mp4", "video/mpeg"]);
 
 export function FileUpload() {
   const { isAuthenticated } = useConvexAuth();
+  const getUploadUrl = useAction(api.files.getUploadUrl);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState("");
@@ -113,15 +115,9 @@ export function FileUpload() {
         save: saveToAccount && isAuthenticated
       });
 
-      const uploadUrl = await fetch("/api/upload", {
-        method: "POST",
-        body: JSON.stringify(fileData)
-      }).then(async res => {
-        if (!res.ok) {
-          console.error(await res.json());
-          return "";
-        }
-        return (await res.json()).url as string;
+      const { url: uploadUrl } = await getUploadUrl(fileData).catch(e => {
+        console.error(e);
+        return { url: "" };
       });
 
       if (uploadUrl === "") {
