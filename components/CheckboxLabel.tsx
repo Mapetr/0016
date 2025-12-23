@@ -3,17 +3,20 @@ import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function CheckboxLabel({
+                                        id,
                                         text,
                                         checked,
                                         setChecked,
                                         disabled = false
                                       }: {
+  id: string;
   text: string;
   checked: boolean;
   setChecked: React.Dispatch<React.SetStateAction<boolean>>;
   disabled: boolean;
 }) {
-  const handleClick = () => {
+  const handleClick = (event: React.MouseEvent<never>) => {
+    event.preventDefault();
     if (!disabled) {
       setChecked((prev) => !prev);
     }
@@ -26,12 +29,12 @@ export default function CheckboxLabel({
       tabIndex={0}
     >
       <Checkbox
-        id={"gif"}
+        id={id}
         checked={checked}
-        onCheckedChange={handleClick}
+        onClick={handleClick}
         disabled={disabled}
       />
-      <Label onClick={handleClick} htmlFor={"gif"} className="cursor-pointer">
+      <Label onClick={handleClick} htmlFor={id} className="cursor-pointer">
         {text}
       </Label>
     </div>

@@ -200,9 +200,9 @@ export function FileUpload() {
       }}>{uploadedUrl}</span>}
       {uploadProgress !== 0 && <Progress className={"transition-all duration-150"} value={uploadProgress} />}
       {messageProgress !== "" && <span>{messageProgress}</span>}
-      <CheckboxLabel text={"Convert to GIF"} checked={convertGif} setChecked={setConvertGif}
+      <CheckboxLabel id={"gif"} text={"Convert to GIF"} checked={convertGif} setChecked={setConvertGif}
                      disabled={!GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? "")} />
-      <CheckboxLabel text={"Save to account"} checked={saveToAccount} setChecked={setSaveToAccount}
+      <CheckboxLabel id={"account"} text={"Save to account"} checked={saveToAccount} setChecked={setSaveToAccount}
                      disabled={!isAuthenticated} />
       <Button onClick={handleUpload}>
         Upload
