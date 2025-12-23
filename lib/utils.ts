@@ -9,7 +9,8 @@ export function cn(...inputs: ClassValue[]) {
 export const FileData = z.object({
   name: z.string().max(256),
   type: z.string().max(256),
-  size: z.number()
+  size: z.number(),
+  save: z.boolean()
 });
 
 export const Link = z.object({

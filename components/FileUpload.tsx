@@ -7,16 +7,30 @@ import { toBlobURL } from "@ffmpeg/util";
 import { FileData, formatBytes } from "@/lib/utils";
 import { ConvertToGif } from "@/lib/gifConvert";
 import { toast } from "sonner";
+import { useAction, useConvexAuth, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "video/webm", "video/mp4", "video/mpeg"]);
 
 export function FileUpload() {
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const { isAuthenticated } = useConvexAuth();
+  const getUploadUrl = useAction(api.files.getUploadUrl);
+  const getMaxSize = useQuery(api.files.getMaxSize);
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState("");
+
   const [uploadProgress, setUploadProgress] = useState(0);
   const [messageProgress, setMessageProgress] = useState("");
+
   const [convertGif, setConvertGif] = useState(false);
+  const [saveToAccount, setSaveToAccount] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setSaveToAccount(isAuthenticated);
+  }, [isAuthenticated]);
 
   const ffmpeg = new FFmpeg();
 
@@ -97,18 +111,13 @@ export function FileUpload() {
       const fileData = FileData.parse({
         name: file.name,
         type: file.type,
-        size: file.size
+        size: file.size,
+        save: saveToAccount && isAuthenticated
       });
 
-      const uploadUrl = await fetch("/api/upload", {
-        method: "POST",
-        body: JSON.stringify(fileData)
-      }).then(async res => {
-        if (!res.ok) {
-          console.error(await res.json());
-          return "";
-        }
-        return (await res.json()).url as string;
+      const { url: uploadUrl } = await getUploadUrl(fileData).catch(e => {
+        console.error(e);
+        return { url: "" };
       });
 
       if (uploadUrl === "") {
@@ -117,25 +126,27 @@ export function FileUpload() {
         return;
       }
 
-      const req = new XMLHttpRequest();
-      req.open("PUT", uploadUrl);
-      req.setRequestHeader("Content-Type", fileData.type);
-      req.upload.onprogress = (event) => {
-        if (!event.lengthComputable) return;
+      if (process.env.NEXT_PUBLIC_UPLOAD_FILE != "false") {
+        const req = new XMLHttpRequest();
+        req.open("PUT", uploadUrl);
+        req.setRequestHeader("Content-Type", fileData.type);
+        req.upload.onprogress = (event) => {
+          if (!event.lengthComputable) return;
 
-        setUploadProgress((event.loaded / event.total) * 100);
-      };
-      req.onload = () => {
-        setUploadProgress(0);
-        if (req.status !== 200) {
-          setMessageProgress("Failed to upload");
-          return;
-        }
-        setMessageProgress("");
-        const url = new URL(uploadUrl);
-        setUploadedUrl(`${process.env.NEXT_PUBLIC_DESTINATION_URL}${url.pathname}`);
-      };
-      req.send(file);
+          setUploadProgress((event.loaded / event.total) * 100);
+        };
+        req.onload = () => {
+          setUploadProgress(0);
+          if (req.status !== 200) {
+            setMessageProgress("Failed to upload");
+            return;
+          }
+          setMessageProgress("");
+          const url = new URL(uploadUrl);
+          setUploadedUrl(`${process.env.NEXT_PUBLIC_DESTINATION_URL}${url.pathname}`);
+        };
+        req.send(file);
+      }
     }
   };
 
@@ -162,7 +173,8 @@ export function FileUpload() {
   }, []);
 
   return (
-    <div className={"flex flex-col gap-8 rounded-xl border bg-card text-card-foreground text-center shadow-sm min-w-[40em] max-w-4xl p-8 md:mx-auto"}>
+    <div
+      className={"flex flex-col gap-8 rounded-xl border bg-card text-card-foreground text-center shadow-sm min-w-[40em] max-w-4xl p-8 md:mx-auto"}>
       <span className={"font-semibold leading-none tracking-tight"}>File uploader</span>
       <div
         className={"border-2 border-dashed border-gray-400 rounded-lg p-4 text-center cursor-pointer"}
@@ -188,12 +200,15 @@ export function FileUpload() {
       }}>{uploadedUrl}</span>}
       {uploadProgress !== 0 && <Progress className={"transition-all duration-150"} value={uploadProgress} />}
       {messageProgress !== "" && <span>{messageProgress}</span>}
-      <CheckboxLabel text={"Convert to GIF"} setChecked={setConvertGif}
-                      disabled={!GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? "")} />
+      <CheckboxLabel text={"Convert to GIF"} checked={convertGif} setChecked={setConvertGif}
+                     disabled={!GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? "")} />
+      <CheckboxLabel text={"Save to account"} checked={saveToAccount} setChecked={setSaveToAccount}
+                     disabled={!isAuthenticated} />
       <Button onClick={handleUpload}>
         Upload
       </Button>
-      <span className={"text-secondary-foreground text-sm"}>Max {formatBytes(Number(process.env.NEXT_PUBLIC_MAX_SIZE))} file size</span>
+      <span
+        className={"text-secondary-foreground text-sm"}>Max {formatBytes(getMaxSize ?? 250000000)} file size</span>
     </div>
-  )
+  );
 }
