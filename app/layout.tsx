@@ -13,6 +13,7 @@ import {
 } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import ConvexClientProvider from "@/app/ConvexClientProvider";
+import { Navbar } from "@/components/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,17 +48,20 @@ export default function RootLayout({
       <PostHogProvider>
         <ClerkProvider>
           <ConvexClientProvider>
-            <header className="absolute top-0 right-0 flex justify-start items-center p-4 gap-4 h-16">
-              <SignedOut>
-                <SignInButton>
-                  <Button className={"text-sm"} size={"sm"} aria-label="Sign in">
-                    Sign In
-                  </Button>
-                </SignInButton>
-              </SignedOut>
-              <SignedIn>
-                <UserButton />
-              </SignedIn>
+            <header className={"h-16"}>
+              <Navbar />
+              <div className="absolute top-0 right-0 flex justify-start items-center p-4 gap-4 h-16">
+                <SignedOut>
+                  <SignInButton>
+                    <Button className={"text-sm"} size={"sm"} aria-label="Sign in">
+                      Sign In
+                    </Button>
+                  </SignInButton>
+                </SignedOut>
+                <SignedIn>
+                  <UserButton />
+                </SignedIn>
+              </div>
             </header>
             {children}
           </ConvexClientProvider>

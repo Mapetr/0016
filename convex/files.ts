@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { internal } from "@/convex/_generated/api";
-import { getCurrentUserOrThrow } from "@/convex/users";
+import { getCurrentUser, getCurrentUserOrThrow } from "@/convex/users";
 
 const MAX_SIZE = 250000000;
 
@@ -27,7 +27,19 @@ export const getMaxSize = query({
   handler: () => {
     return Number(process.env.MAX_SIZE) ?? MAX_SIZE;
   }
-})
+});
+
+export const getFiles = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      return [];
+    }
+
+    return ctx.db.query("files").filter(row => row.eq(row.field("userId"), user._id)).collect();
+  }
+});
 
 export const getUploadUrl = action({
   args: {
