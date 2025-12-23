@@ -1,10 +1,9 @@
-import { action, internalMutation, mutation } from "./_generated/server";
+import { action, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { internal } from "@/convex/_generated/api";
-import arg from "arg";
-import { getCurrentUser, getCurrentUserOrThrow } from "@/convex/users";
+import { getCurrentUserOrThrow } from "@/convex/users";
 
 const MAX_SIZE = 250000000;
 
@@ -23,6 +22,13 @@ function generateString(length: number) {
   return result;
 }
 
+export const getMaxSize = query({
+  args: {},
+  handler: () => {
+    return Number(process.env.MAX_SIZE) ?? MAX_SIZE;
+  }
+})
+
 export const getUploadUrl = action({
   args: {
     name: v.string(),
@@ -36,7 +42,7 @@ export const getUploadUrl = action({
       throw new Error("Saving a file to account without an account");
     }
 
-      if (args.size > (Number(process.env.NEXT_PUBLIC_MAX_SIZE) ?? MAX_SIZE)) {
+      if (args.size > (Number(process.env.MAX_SIZE) ?? MAX_SIZE)) {
         throw new Error("File is too big");
       }
 

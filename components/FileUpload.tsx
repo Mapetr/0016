@@ -7,8 +7,7 @@ import { toBlobURL } from "@ffmpeg/util";
 import { FileData, formatBytes } from "@/lib/utils";
 import { ConvertToGif } from "@/lib/gifConvert";
 import { toast } from "sonner";
-import { useAuth } from "@clerk/nextjs";
-import { useAction, useConvexAuth } from "convex/react";
+import { useAction, useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "video/webm", "video/mp4", "video/mpeg"]);
@@ -16,6 +15,7 @@ const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", 
 export function FileUpload() {
   const { isAuthenticated } = useConvexAuth();
   const getUploadUrl = useAction(api.files.getUploadUrl);
+  const getMaxSize = useQuery(api.files.getMaxSize);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState("");
@@ -208,7 +208,7 @@ export function FileUpload() {
         Upload
       </Button>
       <span
-        className={"text-secondary-foreground text-sm"}>Max {formatBytes(Number(process.env.NEXT_PUBLIC_MAX_SIZE))} file size</span>
+        className={"text-secondary-foreground text-sm"}>Max {formatBytes(getMaxSize ?? 250000000)} file size</span>
     </div>
   );
 }
