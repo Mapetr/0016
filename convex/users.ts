@@ -1,6 +1,8 @@
 import { internalMutation, query, QueryCtx } from "./_generated/server";
 import { UserJSON } from "@clerk/backend";
+import { useConvexAuth, useQuery } from "convex/react";
 import { v, Validator } from "convex/values";
+import { api } from "@/convex/_generated/api";
 
 export const current = query({
   args: {},
@@ -60,4 +62,14 @@ async function userByExternalId(ctx: QueryCtx, externalId: string) {
     .query("users")
     .withIndex("byExternalId", (q) => q.eq("externalId", externalId))
     .unique();
+}
+
+export function useCurrentUser() {
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  const user = useQuery(api.users.current);
+  // Combine the authentication state with the user existence check
+  return {
+    isLoading: isLoading || (isAuthenticated && user === null),
+    isAuthenticated: isAuthenticated && user !== null,
+  };
 }
