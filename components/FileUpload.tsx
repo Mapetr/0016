@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL } from "@ffmpeg/util";
-import { FileData, formatBytes } from "@/lib/utils";
+import { FileData, formatBytes, removeExifData, EXIF_REMOVABLE_TYPES } from "@/lib/utils";
 import { ConvertToGif } from "@/lib/gifConvert";
 import { toast } from "sonner";
 import { useAction, useConvexAuth, useQuery } from "convex/react";
@@ -45,6 +45,7 @@ export function FileUpload() {
   const [messageProgress, setMessageProgress] = useState("");
 
   const [convertGif, setConvertGif] = useState(false);
+  const [removeExif, setRemoveExif] = useState(false);
   const [saveToAccount, setSaveToAccount] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
 
@@ -134,13 +135,17 @@ export function FileUpload() {
     if (selectedFile) {
       setUploadedUrl("");
 
-      let file: File;
+      let file: File = selectedFile;
+
+      if (removeExif && !convertGif) {
+        setMessageProgress("Removing EXIF data");
+        file = await removeExifData(file);
+      }
+
       if (convertGif) {
         await load();
         setMessageProgress("Converting");
-        file = await ConvertToGif(ffmpeg, selectedFile);
-      } else {
-        file = selectedFile;
+        file = await ConvertToGif(ffmpeg, file);
       }
 
       setMessageProgress("Uploading");
@@ -301,6 +306,13 @@ export function FileUpload() {
                 checked={convertGif}
                 setChecked={setConvertGif}
                 disabled={!GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? "")}
+              />
+              <CheckboxLabel
+                id={"exif"}
+                text={"Remove EXIF data"}
+                checked={removeExif}
+                setChecked={setRemoveExif}
+                disabled={!EXIF_REMOVABLE_TYPES.has(selectedFile?.type ?? "")}
               />
               <CheckboxLabel
                 id={"account"}
