@@ -3,12 +3,12 @@ import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function CheckboxLabel({
-                                        id,
-                                        text,
-                                        checked,
-                                        setChecked,
-                                        disabled = false
-                                      }: {
+  id,
+  text,
+  checked,
+  setChecked,
+  disabled = false,
+}: {
   id: string;
   text: string;
   checked: boolean;
@@ -24,7 +24,7 @@ export default function CheckboxLabel({
 
   return (
     <div
-      className="flex items-center space-x-2 cursor-pointer"
+      className="flex cursor-pointer items-center space-x-3"
       role="button"
       tabIndex={0}
     >
@@ -33,8 +33,13 @@ export default function CheckboxLabel({
         checked={checked}
         onClick={handleClick}
         disabled={disabled}
+        className="h-5 w-5 sm:h-4 sm:w-4"
       />
-      <Label onClick={handleClick} htmlFor={id} className="cursor-pointer">
+      <Label
+        onClick={handleClick}
+        htmlFor={id}
+        className="cursor-pointer text-base sm:text-sm"
+      >
         {text}
       </Label>
     </div>

@@ -1,10 +1,11 @@
-"use client"
+"use client";
 
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
-  NavigationMenuList, navigationMenuTriggerStyle
+  NavigationMenuList,
+  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { useIsMobile } from "@/lib/use-mobile";
 import Link from "next/link";
@@ -17,19 +18,23 @@ export function Navbar() {
   if (!isAuthenticated) return null;
 
   return (
-    <NavigationMenu className={"absolute top-0 left-0 p-2"} viewport={isMobile}>
-      <NavigationMenuList className="flex-wrap">
+    <NavigationMenu className={"flex-shrink-0"} viewport={isMobile}>
+      <NavigationMenuList className="flex-wrap gap-1">
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link href="/">Home</Link>
+            <Link href="/" className="px-2 text-sm sm:px-3 sm:text-base">
+              Home
+            </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link href="/files">Files</Link>
+            <Link href="/files" className="px-2 text-sm sm:px-3 sm:text-base">
+              Files
+            </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
-  )
+  );
 }

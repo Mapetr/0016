@@ -69,4 +69,23 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+@layer utilities {
+  .touch-action-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Prevent zoom on input focus on iOS */
+  @media screen and (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
 }

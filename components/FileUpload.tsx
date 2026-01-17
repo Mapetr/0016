@@ -10,7 +10,28 @@ import { toast } from "sonner";
 import { useAction, useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-const GIF_CONVERTIBLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "video/webm", "video/mp4", "video/mpeg"]);
+function ChevronIcon({ isOpen }: { isOpen: boolean }) {
+  return (
+    <svg
+      className={`h-5 w-5 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+const GIF_CONVERTIBLE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "video/webm",
+  "video/mp4",
+  "video/mpeg",
+]);
 
 export function FileUpload() {
   const { isAuthenticated } = useConvexAuth();
@@ -25,6 +46,7 @@ export function FileUpload() {
 
   const [convertGif, setConvertGif] = useState(false);
   const [saveToAccount, setSaveToAccount] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,14 +68,29 @@ export function FileUpload() {
 
     if (crossOriginIsolated) {
       await ffmpeg.load({
-        coreURL: await toBlobURL(`/ffmpeg-mt/ffmpeg-core.js`, "text/javascript"),
-        wasmURL: await toBlobURL(`/ffmpeg-mt/ffmpeg-core.wasm`, "application/wasm"),
-        workerURL: await toBlobURL(`/ffmpeg-mt/ffmpeg-core.worker.js`, "text/javascript")
+        coreURL: await toBlobURL(
+          `/ffmpeg-mt/ffmpeg-core.js`,
+          "text/javascript",
+        ),
+        wasmURL: await toBlobURL(
+          `/ffmpeg-mt/ffmpeg-core.wasm`,
+          "application/wasm",
+        ),
+        workerURL: await toBlobURL(
+          `/ffmpeg-mt/ffmpeg-core.worker.js`,
+          "text/javascript",
+        ),
       });
     } else {
       await ffmpeg.load({
-        coreURL: await toBlobURL(`/ffmpeg-st/ffmpeg-core.js`, "text/javascript"),
-        wasmURL: await toBlobURL(`/ffmpeg-st/ffmpeg-core.wasm`, "application/wasm")
+        coreURL: await toBlobURL(
+          `/ffmpeg-st/ffmpeg-core.js`,
+          "text/javascript",
+        ),
+        wasmURL: await toBlobURL(
+          `/ffmpeg-st/ffmpeg-core.wasm`,
+          "application/wasm",
+        ),
       });
     }
     setMessageProgress("");
@@ -112,10 +149,10 @@ export function FileUpload() {
         name: file.name,
         type: file.type,
         size: file.size,
-        save: saveToAccount && isAuthenticated
+        save: saveToAccount && isAuthenticated,
       });
 
-      const { url: uploadUrl } = await getUploadUrl(fileData).catch(e => {
+      const { url: uploadUrl } = await getUploadUrl(fileData).catch((e) => {
         console.error(e);
         return { url: "" };
       });
@@ -143,7 +180,9 @@ export function FileUpload() {
           }
           setMessageProgress("");
           const url = new URL(uploadUrl);
-          setUploadedUrl(`${process.env.NEXT_PUBLIC_DESTINATION_URL}${url.pathname}`);
+          setUploadedUrl(
+            `${process.env.NEXT_PUBLIC_DESTINATION_URL}${url.pathname}`,
+          );
         };
         req.send(file);
       }
@@ -174,10 +213,21 @@ export function FileUpload() {
 
   return (
     <div
-      className={"flex flex-col gap-8 rounded-xl border bg-card text-card-foreground text-center shadow-sm min-w-[40em] max-w-4xl p-8 md:mx-auto"}>
-      <span className={"font-semibold leading-none tracking-tight"}>File uploader</span>
+      className={
+        "mx-auto flex w-full max-w-4xl flex-col gap-5 p-0 text-center sm:gap-8 sm:rounded-xl sm:border sm:bg-card sm:p-8 sm:text-card-foreground sm:shadow-sm"
+      }
+    >
+      <span
+        className={
+          "text-lg font-semibold leading-none tracking-tight sm:text-base"
+        }
+      >
+        File uploader
+      </span>
       <div
-        className={"border-2 border-dashed border-gray-400 rounded-lg p-4 text-center cursor-pointer"}
+        className={
+          "cursor-pointer rounded-lg border-2 border-dashed border-gray-400 p-6 text-center sm:p-4"
+        }
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -187,28 +237,92 @@ export function FileUpload() {
           type={"file"}
           ref={fileInputRef}
           className={"hidden"}
-          onChange={handleFileChange} />
+          onChange={handleFileChange}
+        />
         {selectedFile ? (
-          <p className={"text-gray-600"}>{selectedFile.name}</p>
+          <p className={"break-all px-2 text-base text-gray-600 sm:text-sm"}>
+            {selectedFile.name}
+          </p>
         ) : (
-          <p className={"text-gray-600"}>Paste or drag and drop a file here or click to select a file</p>
+          <p className={"text-base text-gray-600 sm:text-sm"}>
+            <span className="hidden sm:inline">
+              Paste or drag and drop a file here or click to select a file
+            </span>
+            <span className="sm:hidden">Tap to select a file or paste</span>
+          </p>
         )}
       </div>
-      {uploadedUrl && <span className={"select-all"} onClick={async () => {
-        await navigator.clipboard.writeText(uploadedUrl);
-        toast.success("Copied link to clipboard");
-      }}>{uploadedUrl}</span>}
-      {uploadProgress !== 0 && <Progress className={"transition-all duration-150"} value={uploadProgress} />}
-      {messageProgress !== "" && <span>{messageProgress}</span>}
-      <CheckboxLabel id={"gif"} text={"Convert to GIF"} checked={convertGif} setChecked={setConvertGif}
-                     disabled={!GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? "")} />
-      <CheckboxLabel id={"account"} text={"Save to account"} checked={saveToAccount} setChecked={setSaveToAccount}
-                     disabled={!isAuthenticated} />
-      <Button onClick={handleUpload}>
+      {uploadedUrl && (
+        <span
+          className={
+            "cursor-pointer select-all break-all text-base hover:underline sm:text-sm"
+          }
+          onClick={async () => {
+            await navigator.clipboard.writeText(uploadedUrl);
+            toast.success("Copied link to clipboard");
+          }}
+        >
+          {uploadedUrl}
+        </span>
+      )}
+      {uploadProgress !== 0 && (
+        <Progress
+          className={"transition-all duration-150"}
+          value={uploadProgress}
+        />
+      )}
+      {messageProgress !== "" && (
+        <span className="text-base sm:text-sm">{messageProgress}</span>
+      )}
+
+      {/* Collapsible Options Menu */}
+      <div className="w-full">
+        <button
+          type="button"
+          onClick={() => setOptionsOpen(!optionsOpen)}
+          className="flex w-full items-center justify-center gap-2 py-2 text-base text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
+        >
+          <span>Options</span>
+          <ChevronIcon isOpen={optionsOpen} />
+        </button>
+
+        <div
+          className={`grid transition-all duration-200 ease-in-out ${
+            optionsOpen
+              ? "grid-rows-[1fr] opacity-100"
+              : "grid-rows-[0fr] opacity-0"
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="flex flex-col gap-4 pb-1 pt-3">
+              <CheckboxLabel
+                id={"gif"}
+                text={"Convert to GIF"}
+                checked={convertGif}
+                setChecked={setConvertGif}
+                disabled={!GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? "")}
+              />
+              <CheckboxLabel
+                id={"account"}
+                text={"Save to account"}
+                checked={saveToAccount}
+                setChecked={setSaveToAccount}
+                disabled={!isAuthenticated}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Button
+        className="py-5 text-base sm:py-2 sm:text-sm"
+        onClick={handleUpload}
+      >
         Upload
       </Button>
-      <span
-        className={"text-secondary-foreground text-sm"}>Max {formatBytes(getMaxSize ?? 250000000)} file size</span>
+      <span className={"text-sm text-secondary-foreground"}>
+        Max {formatBytes(getMaxSize ?? 250000000)} file size
+      </span>
     </div>
   );
 }
