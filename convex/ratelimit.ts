@@ -1,6 +1,17 @@
+import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-export const redis = Redis.fromEnv();
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+export const uploadRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "1 m"),
+  analytics: true,
+  prefix: "ratelimit:upload",
+});
 
 export async function verifyTurnstileToken(token: string): Promise<boolean> {
   const response = await fetch(
@@ -18,20 +29,6 @@ export async function verifyTurnstileToken(token: string): Promise<boolean> {
   );
 
   const data = await response.json();
+  console.log(data);
   return data.success === true;
-}
-
-export function generateString(length: number) {
-  let result = "";
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const charactersLength = characters.length;
-  let counter = 0;
-  while (counter < length) {
-    result += characters.charAt(
-      Math.floor(Math.random() * charactersLength)
-    );
-    counter += 1;
-  }
-  return result;
 }

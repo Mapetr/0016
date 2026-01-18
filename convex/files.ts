@@ -4,6 +4,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { internal } from "@/convex/_generated/api";
 import { getCurrentUser, getCurrentUserOrThrow } from "@/convex/users";
+import { uploadRatelimit, verifyTurnstileToken } from "@/convex/ratelimit";
 
 const MAX_SIZE = 250000000;
 
@@ -47,6 +48,7 @@ export const getUploadUrl = action({
     type: v.string(),
     size: v.number(),
     save: v.boolean(),
+    turnstileToken: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -54,9 +56,20 @@ export const getUploadUrl = action({
       throw new Error("Saving a file to account without an account");
     }
 
-      if (args.size > (Number(process.env.MAX_SIZE) ?? MAX_SIZE)) {
-        throw new Error("File is too big");
-      }
+    const isValidToken = await verifyTurnstileToken(args.turnstileToken);
+    if (!isValidToken) {
+      throw new Error("Bot verification failed. Please try again.");
+    }
+
+    const identifier = identity?.subject ?? "anonymous";
+    const { success } = await uploadRatelimit.limit(identifier);
+    if (!success) {
+      throw new Error("Rate limit exceeded. Please try again later.");
+    }
+
+    if (args.size > (Number(process.env.MAX_SIZE) ?? MAX_SIZE)) {
+      throw new Error("File is too big");
+    }
 
       const s3Client = new S3Client({
         region: process.env.S3_REGION,

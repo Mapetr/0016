@@ -9,6 +9,7 @@ import { ConvertToGif } from "@/lib/gifConvert";
 import { toast } from "sonner";
 import { useAction, useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Turnstile, TurnstileInstance, TurnstileProps } from "@marsidev/react-turnstile";
 
 function ChevronIcon({ isOpen }: { isOpen: boolean }) {
   return (
@@ -48,8 +49,10 @@ export function FileUpload() {
   const [removeExif, setRemoveExif] = useState(false);
   const [saveToAccount, setSaveToAccount] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   useEffect(() => {
     setSaveToAccount(isAuthenticated);
@@ -132,6 +135,11 @@ export function FileUpload() {
   };
 
   const handleUpload = async () => {
+    if (!turnstileToken) {
+      toast.error("Please complete the verification");
+      return;
+    }
+
     if (selectedFile) {
       setUploadedUrl("");
 
@@ -157,10 +165,16 @@ export function FileUpload() {
         save: saveToAccount && isAuthenticated,
       });
 
-      const { url: uploadUrl } = await getUploadUrl(fileData).catch((e) => {
+      const { url: uploadUrl } = await getUploadUrl({
+        ...fileData,
+        turnstileToken,
+      }).catch((e) => {
         console.error(e);
         return { url: "" };
       });
+
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
 
       if (uploadUrl === "") {
         setMessageProgress("Errored");
@@ -326,9 +340,23 @@ export function FileUpload() {
         </div>
       </div>
 
+      <div className="flex justify-center">
+        <Turnstile
+          ref={turnstileRef}
+          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+          onSuccess={setTurnstileToken}
+          onError={() => setTurnstileToken(null)}
+          onExpire={() => setTurnstileToken(null)}
+          options={{
+            theme: "dark",
+          }}
+        />
+      </div>
+
       <Button
         className="py-5 text-base sm:py-2 sm:text-sm"
         onClick={handleUpload}
+        disabled={!turnstileToken}
       >
         Upload
       </Button>

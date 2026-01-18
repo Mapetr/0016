@@ -1,14 +1,22 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Link } from "@/lib/utils";
 import { toast } from "sonner";
+import { Turnstile, TurnstileInstance } from "@marsidev/react-turnstile";
 
 export function LinkShortener() {
   const [url, setUrl] = useState("");
   const [shortenedUrl, setShortenedUrl] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const handleShorten = async () => {
+    if (!turnstileToken) {
+      toast.error("Please complete the verification");
+      return;
+    }
+
     const data = Link.safeParse({
       url: url,
     });
@@ -16,7 +24,7 @@ export function LinkShortener() {
 
     const shortUrl = await fetch("/api/link", {
       method: "POST",
-      body: JSON.stringify(data.data),
+      body: JSON.stringify({ ...data.data, turnstileToken }),
     }).then(async (res) => {
       if (!res.ok) {
         console.error(await res.json());
@@ -25,6 +33,8 @@ export function LinkShortener() {
       return (await res.json()).url as string;
     });
 
+    turnstileRef.current?.reset();
+    setTurnstileToken(null);
     setShortenedUrl(shortUrl);
   };
 
@@ -61,9 +71,24 @@ export function LinkShortener() {
           setUrl(e.target.value);
         }}
       />
+
+      <div className="flex justify-center">
+        <Turnstile
+          ref={turnstileRef}
+          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+          onSuccess={setTurnstileToken}
+          onError={() => setTurnstileToken(null)}
+          onExpire={() => setTurnstileToken(null)}
+          options={{
+            theme: "dark",
+          }}
+        />
+      </div>
+
       <Button
         className="py-5 text-base sm:py-2 sm:text-sm"
         onClick={handleShorten}
+        disabled={!turnstileToken}
       >
         Shorten
       </Button>
