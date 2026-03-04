@@ -31,7 +31,7 @@ const GIF_CONVERTIBLE_TYPES = new Set([
   "image/webp",
   "video/webm",
   "video/mp4",
-  "video/mpeg",
+  "video/mpeg"
 ]);
 
 export function FileUpload() {
@@ -50,6 +50,10 @@ export function FileUpload() {
   const [saveToAccount, setSaveToAccount] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+
+  const [uploadSpeed, setUploadSpeed] = useState("");
+  const [uploadEta, setUploadEta] = useState("");
+  const uploadStartTimeRef = useRef<number>(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
@@ -74,27 +78,27 @@ export function FileUpload() {
       await ffmpeg.load({
         coreURL: await toBlobURL(
           `/ffmpeg-mt/ffmpeg-core.js`,
-          "text/javascript",
+          "text/javascript"
         ),
         wasmURL: await toBlobURL(
           `/ffmpeg-mt/ffmpeg-core.wasm`,
-          "application/wasm",
+          "application/wasm"
         ),
         workerURL: await toBlobURL(
           `/ffmpeg-mt/ffmpeg-core.worker.js`,
-          "text/javascript",
-        ),
+          "text/javascript"
+        )
       });
     } else {
       await ffmpeg.load({
         coreURL: await toBlobURL(
           `/ffmpeg-st/ffmpeg-core.js`,
-          "text/javascript",
+          "text/javascript"
         ),
         wasmURL: await toBlobURL(
           `/ffmpeg-st/ffmpeg-core.wasm`,
-          "application/wasm",
-        ),
+          "application/wasm"
+        )
       });
     }
     setMessageProgress("");
@@ -140,72 +144,98 @@ export function FileUpload() {
       return;
     }
 
-    if (selectedFile) {
-      setUploadedUrl("");
+    if (!selectedFile) {
+      return;
+    }
 
-      let file: File = selectedFile;
+    setUploadedUrl("");
+    let file: File = selectedFile;
+    if (removeExif && !convertGif) {
+      setMessageProgress("Removing EXIF data");
+      file = await removeExifData(file);
+    }
 
-      if (removeExif && !convertGif) {
-        setMessageProgress("Removing EXIF data");
-        file = await removeExifData(file);
+    if (convertGif) {
+      await load();
+      setMessageProgress("Converting");
+      file = await ConvertToGif(ffmpeg, file);
+    }
+
+    setMessageProgress("Uploading");
+
+    const fileData = FileData.parse({
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      save: saveToAccount && isAuthenticated
+    });
+
+    const { url: uploadUrl } = await getUploadUrl({
+      ...fileData,
+      turnstileToken
+    }).catch((e) => {
+      console.error(e);
+      return { url: "" };
+    });
+
+    turnstileRef.current?.reset();
+    setTurnstileToken(null);
+
+    if (uploadUrl === "") {
+      setMessageProgress("Errored");
+      setUploadProgress(0);
+      return;
+    }
+
+    if (process.env.NEXT_PUBLIC_UPLOAD_FILE == "false") {
+      return;
+    }
+
+    const req = new XMLHttpRequest();
+    req.open("PUT", uploadUrl);
+    req.setRequestHeader("Content-Type", fileData.type);
+    uploadStartTimeRef.current = Date.now();
+
+    req.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+
+      setUploadProgress((event.loaded / event.total) * 100);
+
+      const elapsed = (Date.now() - uploadStartTimeRef.current) / 1000;
+      if (elapsed > 0) {
+        const speed = event.loaded / elapsed;
+        setUploadSpeed(`${formatBytes(speed)}/s`);
+
+        const remaining = event.total - event.loaded;
+        if (speed > 0) {
+          const etaSeconds = Math.ceil(remaining / speed);
+          if (etaSeconds >= 60) {
+            const mins = Math.floor(etaSeconds / 60);
+            const secs = etaSeconds % 60;
+            setUploadEta(`${mins}m ${secs}s remaining`);
+          } else {
+            setUploadEta(`${etaSeconds}s remaining`);
+          }
+        }
       }
+    };
 
-      if (convertGif) {
-        await load();
-        setMessageProgress("Converting");
-        file = await ConvertToGif(ffmpeg, file);
-      }
-
-      setMessageProgress("Uploading");
-
-      const fileData = FileData.parse({
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        save: saveToAccount && isAuthenticated,
-      });
-
-      const { url: uploadUrl } = await getUploadUrl({
-        ...fileData,
-        turnstileToken,
-      }).catch((e) => {
-        console.error(e);
-        return { url: "" };
-      });
-
-      turnstileRef.current?.reset();
-      setTurnstileToken(null);
-
-      if (uploadUrl === "") {
-        setMessageProgress("Errored");
-        setUploadProgress(0);
+    req.onload = () => {
+      setUploadProgress(0);
+      setUploadSpeed("");
+      setUploadEta("");
+      if (req.status !== 200) {
+        setMessageProgress("Failed to upload");
         return;
       }
-
-      if (process.env.NEXT_PUBLIC_UPLOAD_FILE != "false") {
-        const req = new XMLHttpRequest();
-        req.open("PUT", uploadUrl);
-        req.setRequestHeader("Content-Type", fileData.type);
-        req.upload.onprogress = (event) => {
-          if (!event.lengthComputable) return;
-
-          setUploadProgress((event.loaded / event.total) * 100);
-        };
-        req.onload = () => {
-          setUploadProgress(0);
-          if (req.status !== 200) {
-            setMessageProgress("Failed to upload");
-            return;
-          }
-          setMessageProgress("");
-          const url = new URL(uploadUrl);
-          setUploadedUrl(
-            `${process.env.NEXT_PUBLIC_DESTINATION_URL}${url.pathname}`,
-          );
-        };
-        req.send(file);
-      }
-    }
+      setMessageProgress("");
+      const url = new URL(uploadUrl);
+      setUploadedUrl(
+        `${process.env.NEXT_PUBLIC_DESTINATION_URL}${url.pathname}`
+      );
+    };
+    
+    req.send(file);
   };
 
   // Listen for paste events to allow pasting files directly
@@ -291,7 +321,11 @@ export function FileUpload() {
         />
       )}
       {messageProgress !== "" && (
-        <span className="text-base sm:text-sm">{messageProgress}</span>
+        <span className="text-base sm:text-sm">
+          {messageProgress}
+          {uploadSpeed && ` \u2022 ${uploadSpeed}`}
+          {uploadEta && ` \u2022 ${uploadEta}`}
+        </span>
       )}
 
       {/* Collapsible Options Menu */}
@@ -348,7 +382,7 @@ export function FileUpload() {
           onError={() => setTurnstileToken(null)}
           onExpire={() => setTurnstileToken(null)}
           options={{
-            theme: "dark",
+            theme: "dark"
           }}
         />
       </div>
