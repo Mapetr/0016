@@ -57,6 +57,22 @@ export function FileUpload() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const uploadingRef = useRef(false);
+
+  const requestWakeLock = async () => {
+    if (!("wakeLock" in navigator)) return;
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request("screen");
+    } catch {
+      // ignore — not supported or denied
+    }
+  };
+
+  const releaseWakeLock = () => {
+    wakeLockRef.current?.release().catch(() => {});
+    wakeLockRef.current = null;
+  };
 
   useEffect(() => {
     setSaveToAccount(isAuthenticated);
@@ -162,6 +178,8 @@ export function FileUpload() {
     }
 
     setMessageProgress("Uploading");
+    uploadingRef.current = true;
+    await requestWakeLock();
 
     const fileData = FileData.parse({
       name: file.name,
@@ -184,10 +202,14 @@ export function FileUpload() {
     if (uploadUrl === "") {
       setMessageProgress("Errored");
       setUploadProgress(0);
+      uploadingRef.current = false;
+      releaseWakeLock();
       return;
     }
 
     if (process.env.NEXT_PUBLIC_UPLOAD_FILE == "false") {
+      uploadingRef.current = false;
+      releaseWakeLock();
       return;
     }
 
@@ -224,6 +246,8 @@ export function FileUpload() {
       setUploadProgress(0);
       setUploadSpeed("");
       setUploadEta("");
+      uploadingRef.current = false;
+      releaseWakeLock();
       if (req.status !== 200) {
         setMessageProgress("Failed to upload");
         return;
@@ -234,7 +258,16 @@ export function FileUpload() {
         `${process.env.NEXT_PUBLIC_DESTINATION_URL}${url.pathname}`
       );
     };
-    
+
+    req.onerror = () => {
+      setUploadProgress(0);
+      setUploadSpeed("");
+      setUploadEta("");
+      uploadingRef.current = false;
+      releaseWakeLock();
+      setMessageProgress("Failed to upload");
+    };
+
     req.send(file);
   };
 
@@ -257,6 +290,20 @@ export function FileUpload() {
     window.addEventListener("paste", handlePaste);
     return () => {
       window.removeEventListener("paste", handlePaste);
+    };
+  }, []);
+
+  // Re-acquire wake lock when tab becomes visible again (browser releases it on hide)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && uploadingRef.current) {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      releaseWakeLock();
     };
   }, []);
 
