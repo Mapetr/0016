@@ -7,8 +7,10 @@ import { toBlobURL } from "@ffmpeg/util";
 import { FileData, formatBytes, removeExifData, EXIF_REMOVABLE_TYPES } from "@/lib/utils";
 import { ConvertToGif } from "@/lib/gifConvert";
 import { toast } from "sonner";
-import { useAction, useConvexAuth, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Turnstile, TurnstileInstance, TurnstileProps } from "@marsidev/react-turnstile";
 
 function ChevronIcon({ isOpen }: { isOpen: boolean }) {
@@ -36,7 +38,8 @@ const GIF_CONVERTIBLE_TYPES = new Set([
 
 export function FileUpload() {
   const { isAuthenticated } = useConvexAuth();
-  const getUploadUrl = useAction(api.files.getUploadUrl);
+  const { getToken } = useAuth();
+  const confirmUpload = useMutation(api.files.confirmUpload);
   const getMaxSize = useQuery(api.files.getMaxSize);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -50,6 +53,8 @@ export function FileUpload() {
   const [saveToAccount, setSaveToAccount] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [showTurnstile, setShowTurnstile] = useState(false);
+  const pendingUploadRef = useRef(false);
 
   const [uploadSpeed, setUploadSpeed] = useState("");
   const [uploadEta, setUploadEta] = useState("");
@@ -154,12 +159,30 @@ export function FileUpload() {
     }
   };
 
-  const handleUpload = async () => {
-    if (!turnstileToken) {
-      toast.error("Please complete the verification");
+  const handleUpload = () => {
+    if (!selectedFile) {
       return;
     }
 
+    if (!turnstileToken) {
+      // Show the widget and run the upload once verification succeeds
+      pendingUploadRef.current = true;
+      setShowTurnstile(true);
+      return;
+    }
+
+    performUpload(turnstileToken);
+  };
+
+  const handleTurnstileSuccess = (token: string) => {
+    setTurnstileToken(token);
+    if (pendingUploadRef.current) {
+      pendingUploadRef.current = false;
+      performUpload(token);
+    }
+  };
+
+  const performUpload = async (token: string) => {
     if (!selectedFile) {
       return;
     }
@@ -188,16 +211,41 @@ export function FileUpload() {
       save: saveToAccount && isAuthenticated
     });
 
-    const { url: uploadUrl } = await getUploadUrl({
-      ...fileData,
-      turnstileToken
-    }).catch((e) => {
-      console.error(e);
-      return { url: "" };
-    });
+    // Presign goes through a Convex HTTP action (not a plain action) so the
+    // server can rate-limit anonymous users by their real IP.
+    const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_URL!.replace(
+      ".convex.cloud",
+      ".convex.site"
+    );
+    const authToken = isAuthenticated
+      ? await getToken({ template: "convex" }).catch(() => null)
+      : null;
+
+    const { url: uploadUrl, fileId } = (await fetch(
+      `${convexSiteUrl}/getUploadUrl`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify({ ...fileData, turnstileToken: token })
+      }
+    )
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error((await res.json()).error ?? "Failed to get upload URL");
+        }
+        return res.json();
+      })
+      .catch((e) => {
+        console.error(e);
+        return { url: "", fileId: null };
+      })) as { url: string; fileId: Id<"files"> | null };
 
     turnstileRef.current?.reset();
     setTurnstileToken(null);
+    setShowTurnstile(false);
 
     if (uploadUrl === "") {
       setMessageProgress("Errored");
@@ -253,6 +301,10 @@ export function FileUpload() {
         return;
       }
       setMessageProgress("");
+      if (fileId) {
+        // Flip the pending DB row to confirmed now that the file exists
+        confirmUpload({ fileId }).catch(console.error);
+      }
       const url = new URL(uploadUrl);
       setUploadedUrl(
         `${process.env.NEXT_PUBLIC_DESTINATION_URL}${url.pathname}`
@@ -421,23 +473,25 @@ export function FileUpload() {
         </div>
       </div>
 
-      <div className="flex justify-center">
-        <Turnstile
-          ref={turnstileRef}
-          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-          onSuccess={setTurnstileToken}
-          onError={() => setTurnstileToken(null)}
-          onExpire={() => setTurnstileToken(null)}
-          options={{
-            theme: "dark"
-          }}
-        />
-      </div>
+      {showTurnstile && (
+        <div className="flex justify-center">
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+            onSuccess={handleTurnstileSuccess}
+            onError={() => setTurnstileToken(null)}
+            onExpire={() => setTurnstileToken(null)}
+            options={{
+              theme: "dark"
+            }}
+          />
+        </div>
+      )}
 
       <Button
         className="py-5 text-base sm:py-2 sm:text-sm"
         onClick={handleUpload}
-        disabled={!turnstileToken}
+        disabled={!selectedFile}
       >
         Upload
       </Button>
