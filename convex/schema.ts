@@ -12,5 +12,9 @@ export default defineSchema({
     type: v.string(),
     userId: v.id("users"),
     pending: v.optional(v.boolean())
-  }).index("byUserId", ["userId"])
+  }).index("byUserId", ["userId"]),
+  links: defineTable({
+    slug: v.string(),
+    url: v.string()
+  }).index("bySlug", ["slug"])
 });

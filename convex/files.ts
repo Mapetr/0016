@@ -6,6 +6,7 @@ import { internal } from "@/convex/_generated/api";
 import { getCurrentUser, getCurrentUserOrThrow } from "@/convex/users";
 import { Id } from "./_generated/dataModel";
 import { uploadRatelimit, verifyTurnstileToken } from "@/convex/ratelimit";
+import { generateString } from "@/convex/helpers";
 
 const DEFAULT_MAX_SIZE = 250000000;
 
@@ -34,21 +35,6 @@ function sanitizeFileName(name: string): string {
 function getMaxUploadSize() {
   const fromEnv = Number(process.env.MAX_SIZE);
   return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_MAX_SIZE;
-}
-
-function generateString(length: number) {
-  let result = "";
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const charactersLength = characters.length;
-  let counter = 0;
-  while (counter < length) {
-    result += characters.charAt(
-      Math.floor(Math.random() * charactersLength)
-    );
-    counter += 1;
-  }
-  return result;
 }
 
 export const getMaxSize = query({
