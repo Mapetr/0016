@@ -4,13 +4,6 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import schema from "./schema";
 import { api, internal } from "./_generated/api";
 
-// The Upstash client in ratelimit.ts reads these at module load, which
-// happens on the first convex-test call — stub before any test runs.
-vi.stubEnv("DOMAIN", "https://short.test");
-vi.stubEnv("TURNSTILE_SECRET_KEY", "test-secret");
-vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://fake-upstash.test");
-vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "fake-token");
-
 const modules = import.meta.glob([
   "./**/*.ts",
   "./**/*.js",
