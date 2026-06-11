@@ -6,6 +6,65 @@ import { Webhook } from "svix";
 
 const http = httpRouter();
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+http.route({
+  path: "/getUploadUrl",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }),
+});
+
+http.route({
+  path: "/getUploadUrl",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ error: "Invalid JSON body" }, 400);
+    }
+
+    // Rate-limit authenticated users by user id, anonymous users by
+    // client IP — never by a shared bucket.
+    const identity = await ctx.auth.getUserIdentity();
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "unknown";
+    const identifier = identity?.subject ?? `ip:${ip}`;
+
+    try {
+      const result = await ctx.runAction(internal.files.getUploadUrl, {
+        name: String(body.name ?? ""),
+        type: String(body.type ?? ""),
+        size: Number(body.size ?? 0),
+        save: body.save === true,
+        turnstileToken: String(body.turnstileToken ?? ""),
+        identifier,
+      });
+      return jsonResponse(result, 200);
+    } catch (error) {
+      console.error(error);
+      const message =
+        error instanceof Error ? error.message : "Failed to get upload URL";
+      return jsonResponse({ error: message }, 400);
+    }
+  }),
+});
+
+function jsonResponse(body: unknown, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  });
+}
+
 http.route({
   path: "/clerk-users-webhook",
   method: "POST",

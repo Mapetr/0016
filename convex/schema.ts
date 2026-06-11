@@ -10,6 +10,7 @@ export default defineSchema({
     url: v.string(),
     size: v.number(),
     type: v.string(),
-    userId: v.id("users")
-  })
+    userId: v.id("users"),
+    pending: v.optional(v.boolean())
+  }).index("byUserId", ["userId"])
 });
