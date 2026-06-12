@@ -1,5 +1,6 @@
 import { internalAction, internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { internal } from "@/convex/_generated/api";
@@ -45,18 +46,19 @@ export const getMaxSize = query({
 });
 
 export const getFiles = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      return [];
+      return { page: [], isDone: true, continueCursor: "" };
     }
 
     return ctx.db
       .query("files")
       .withIndex("byUserId", q => q.eq("userId", user._id))
       .filter(row => row.neq(row.field("pending"), true))
-      .collect();
+      .order("desc")
+      .paginate(args.paginationOpts);
   }
 });
 

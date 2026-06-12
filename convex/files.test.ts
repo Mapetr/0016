@@ -14,6 +14,8 @@ const modules = import.meta.glob([
 
 const identity = { subject: "clerk_user_1" };
 
+const paginate = { paginationOpts: { numItems: 100, cursor: null } };
+
 function stubNetwork({ turnstileOk }: { turnstileOk: boolean }) {
   vi.stubGlobal(
     "fetch",
@@ -76,7 +78,7 @@ describe("getMaxSize", () => {
 describe("getFiles", () => {
   test("returns empty for unauthenticated users", async () => {
     const t = convexTest(schema, modules);
-    expect(await t.query(api.files.getFiles, {})).toEqual([]);
+    expect((await t.query(api.files.getFiles, paginate)).page).toEqual([]);
   });
 
   test("hides pending files until confirmed", async () => {
@@ -90,11 +92,11 @@ describe("getFiles", () => {
       size: 1000,
     });
 
-    expect(await asUser.query(api.files.getFiles, {})).toEqual([]);
+    expect((await asUser.query(api.files.getFiles, paginate)).page).toEqual([]);
 
     await asUser.mutation(api.files.confirmUpload, { fileId });
 
-    const files = await asUser.query(api.files.getFiles, {});
+    const files = (await asUser.query(api.files.getFiles, paginate)).page;
     expect(files).toHaveLength(1);
     expect(files[0].url).toBe("https://files.test/abc/test.txt");
     expect(files[0].pending).toBe(false);
@@ -195,10 +197,10 @@ describe("getUploadUrl", () => {
     });
 
     expect(fileId).not.toBeNull();
-    expect(await asUser.query(api.files.getFiles, {})).toEqual([]);
+    expect((await asUser.query(api.files.getFiles, paginate)).page).toEqual([]);
 
     await asUser.mutation(api.files.confirmUpload, { fileId: fileId! });
-    const files = await asUser.query(api.files.getFiles, {});
+    const files = (await asUser.query(api.files.getFiles, paginate)).page;
     expect(files).toHaveLength(1);
     expect(files[0].url).toBe(
       `${process.env.DESTINATION_URL}${new URL(url).pathname}`
@@ -250,7 +252,7 @@ describe("deleteIfPending", () => {
     await t.mutation(internal.files.deleteIfPending, { fileId: pendingId });
     await t.mutation(internal.files.deleteIfPending, { fileId: confirmedId });
 
-    const files = await asUser.query(api.files.getFiles, {});
+    const files = (await asUser.query(api.files.getFiles, paginate)).page;
     expect(files).toHaveLength(1);
     expect(files[0].url).toBe("https://files.test/abc/confirmed.txt");
   });

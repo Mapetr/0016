@@ -1,7 +1,8 @@
 "use client";
 
-import { useConvexAuth, useQuery } from "convex/react";
+import { useConvexAuth, usePaginatedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { api } from "@/convex/_generated/api";
 import { ColumnDef, getCoreRowModel } from "@tanstack/table-core";
 import { Doc } from "@/convex/_generated/dataModel";
@@ -104,16 +105,43 @@ function FileCard({ file }: { file: Doc<"files"> }) {
   );
 }
 
+const PAGE_SIZE = 25;
+
 export default function Page() {
   const { isLoading, isAuthenticated } = useConvexAuth();
-  const files = useQuery(api.files.getFiles);
+  const {
+    results: files,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.files.getFiles, {}, { initialNumItems: PAGE_SIZE });
   const router = useRouter();
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Load the next page when the sentinel scrolls into view
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && status === "CanLoadMore") {
+          loadMore(PAGE_SIZE);
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [status, loadMore]);
 
   if (isLoading) return null;
   if (!isLoading && !isAuthenticated) {
     router.push("/");
     return null;
   }
+
+  const isEmpty = status !== "LoadingFirstPage" && files.length === 0;
 
   return (
     <div className="p-4 sm:p-6">
@@ -123,27 +151,35 @@ export default function Page() {
 
       {/* Mobile view - Card layout */}
       <div className="block md:hidden">
-        {files && files.length > 0 ? (
+        {files.length > 0 ? (
           <div className="flex flex-col">
             {files.map((file) => (
               <FileCard key={file._id} file={file} />
             ))}
           </div>
-        ) : (
+        ) : isEmpty ? (
           <p className="py-8 text-center text-base text-muted-foreground">
             No files uploaded yet.
           </p>
-        )}
+        ) : null}
       </div>
 
       {/* Desktop view - Table layout */}
       <div className="hidden md:block">
         <div className="overflow-hidden rounded-xl border">
           <div className="overflow-x-auto">
-            <DataTable columns={columns} data={files ?? []} />
+            <DataTable columns={columns} data={files} />
           </div>
         </div>
       </div>
+
+      {/* Infinite-scroll sentinel + loading indicator */}
+      <div ref={sentinelRef} className="h-1" />
+      {(status === "LoadingMore" || status === "LoadingFirstPage") && (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          Loading…
+        </p>
+      )}
     </div>
   );
 }
