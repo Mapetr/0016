@@ -22,8 +22,16 @@ export function LinkShortener() {
     });
     if (!data.success) return;
 
-    const shortUrl = await fetch("/api/link", {
+    // Shortening goes through a Convex HTTP action (not a plain action) so
+    // the server can rate-limit users by their real IP.
+    const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_URL!.replace(
+      ".convex.cloud",
+      ".convex.site"
+    );
+
+    const shortUrl = await fetch(`${convexSiteUrl}/shortenLink`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...data.data, turnstileToken }),
     }).then(async (res) => {
       if (!res.ok) {

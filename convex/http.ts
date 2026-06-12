@@ -58,6 +58,46 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/shortenLink",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }),
+});
+
+http.route({
+  path: "/shortenLink",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ error: "Invalid JSON body" }, 400);
+    }
+
+    // Rate-limit by client IP — never by a shared bucket.
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "unknown";
+
+    try {
+      const result = await ctx.runAction(internal.links.shortenLink, {
+        url: String(body.url ?? ""),
+        turnstileToken: String(body.turnstileToken ?? ""),
+        identifier: `ip:${ip}`,
+      });
+      return jsonResponse(result, 200);
+    } catch (error) {
+      console.error(error);
+      const message =
+        error instanceof Error ? error.message : "Failed to shorten link";
+      return jsonResponse({ error: message }, 400);
+    }
+  }),
+});
+
 function jsonResponse(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
     status,

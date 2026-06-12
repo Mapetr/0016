@@ -9,7 +9,9 @@
  */
 
 import type * as files from "../files.js";
+import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
+import type * as links from "../links.js";
 import type * as ratelimit from "../ratelimit.js";
 import type * as users from "../users.js";
 
@@ -21,7 +23,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   files: typeof files;
+  helpers: typeof helpers;
   http: typeof http;
+  links: typeof links;
   ratelimit: typeof ratelimit;
   users: typeof users;
 }>;

@@ -13,6 +13,13 @@ export const uploadRatelimit = new Ratelimit({
   prefix: "ratelimit:upload",
 });
 
+export const linkRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "1 m"),
+  analytics: true,
+  prefix: "ratelimit:link",
+});
+
 export async function verifyTurnstileToken(token: string): Promise<boolean> {
   const response = await fetch(
     "https://challenges.cloudflare.com/turnstile/v0/siteverify",
