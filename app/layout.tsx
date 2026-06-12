@@ -4,16 +4,9 @@ import "./globals.css";
 import NoSSRWrapper from "@/app/NoSSRWrapper";
 import { PostHogProvider } from "@/app/providers";
 import { Toaster } from "@/components/ui/sonner";
-import {
-  ClerkProvider,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
+import { ClerkProvider } from "@clerk/nextjs";
 import ConvexClientProvider from "@/app/ConvexClientProvider";
-import { Navbar } from "@/components/Navbar";
+import { MainHeader } from "@/components/MainHeader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,29 +42,7 @@ export default function RootLayout({
           <PostHogProvider>
             <ClerkProvider>
               <ConvexClientProvider>
-                <header
-                  className={
-                    "flex h-14 items-center justify-between px-2 sm:h-16 sm:px-4"
-                  }
-                >
-                  <Navbar />
-                  <div className="ml-auto flex items-center gap-2 sm:gap-4">
-                    <SignedOut>
-                      <SignInButton>
-                        <Button
-                          className={"text-xs sm:text-sm"}
-                          size={"sm"}
-                          aria-label="Sign in"
-                        >
-                          Sign In
-                        </Button>
-                      </SignInButton>
-                    </SignedOut>
-                    <SignedIn>
-                      <UserButton />
-                    </SignedIn>
-                  </div>
-                </header>
+                <MainHeader />
                 {children}
               </ConvexClientProvider>
             </ClerkProvider>

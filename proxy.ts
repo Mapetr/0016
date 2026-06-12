@@ -1,6 +1,20 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
-export default clerkMiddleware();
+// Requests for the gallery subdomain (e.g. glypho.0016.cz) are rewritten to
+// the /site route group, which hosts the public Glypho collage.
+export default clerkMiddleware((auth, req) => {
+  const galleryHost = process.env.NEXT_PUBLIC_GALLERY_HOST;
+  const host = req.headers.get('host')?.split(':')[0];
+
+  if (galleryHost && host === galleryHost) {
+    const url = req.nextUrl.clone();
+    if (!url.pathname.startsWith('/site')) {
+      url.pathname = `/site${url.pathname === '/' ? '' : url.pathname}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+});
 
 export const config = {
   matcher: [

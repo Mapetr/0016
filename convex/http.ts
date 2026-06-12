@@ -45,6 +45,7 @@ http.route({
         type: String(body.type ?? ""),
         size: Number(body.size ?? 0),
         save: body.save === true,
+        public: body.public === true,
         turnstileToken: String(body.turnstileToken ?? ""),
         identifier,
       });
