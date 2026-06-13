@@ -51,6 +51,7 @@ export function FileUpload() {
   const [convertGif, setConvertGif] = useState(false);
   const [removeExif, setRemoveExif] = useState(false);
   const [saveToAccount, setSaveToAccount] = useState(false);
+  const [addToSite, setAddToSite] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [showTurnstile, setShowTurnstile] = useState(false);
@@ -204,11 +205,16 @@ export function FileUpload() {
     uploadingRef.current = true;
     await requestWakeLock();
 
+    // Publishing to the public site implies saving to the account so the
+    // collage can attribute the upload.
+    const publishToSite =
+      addToSite && isAuthenticated && file.type.startsWith("image/");
     const fileData = FileData.parse({
       name: file.name,
       type: file.type,
       size: file.size,
-      save: saveToAccount && isAuthenticated
+      save: (saveToAccount || publishToSite) && isAuthenticated,
+      public: publishToSite
     });
 
     // Presign goes through a Convex HTTP action (not a plain action) so the
@@ -464,10 +470,38 @@ export function FileUpload() {
               <CheckboxLabel
                 id={"account"}
                 text={"Save to account"}
-                checked={saveToAccount}
+                checked={saveToAccount || addToSite}
                 setChecked={setSaveToAccount}
-                disabled={!isAuthenticated}
+                disabled={!isAuthenticated || addToSite}
               />
+              <CheckboxLabel
+                id={"site"}
+                text={"Add to Glypho (public gallery)"}
+                checked={addToSite}
+                setChecked={setAddToSite}
+                disabled={
+                  !isAuthenticated ||
+                  !(
+                    selectedFile?.type.startsWith("image/") ||
+                    (convertGif &&
+                      GIF_CONVERTIBLE_TYPES.has(selectedFile?.type ?? ""))
+                  )
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Public images appear on{" "}
+                <a
+                  href={
+                    process.env.NEXT_PUBLIC_GALLERY_URL ?? "/site"
+                  }
+                  className="underline hover:text-foreground"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Glypho
+                </a>
+                , our public image collage. Requires an account.
+              </p>
             </div>
           </div>
         </div>

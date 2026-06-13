@@ -20,6 +20,25 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Glypho — public gallery subdomain
+
+`/site` hosts **Glypho**, a public masonry collage of images that users opt
+into publishing via the "Add to Glypho" checkbox on the uploader (requires an
+account; the upload is also saved to it).
+
+To serve it on its own subdomain, point the subdomain at the same deployment
+and set:
+
+- `NEXT_PUBLIC_GALLERY_HOST` — hostname of the gallery (e.g. `glypho.0016.cz`).
+  The middleware rewrites requests for this host to `/site`.
+- `NEXT_PUBLIC_GALLERY_URL` — full URL of the gallery (e.g.
+  `https://glypho.0016.cz`), used by the uploader to link to it.
+- `NEXT_PUBLIC_MAIN_SITE_URL` — full URL of the main uploader (e.g.
+  `https://0016.cz`), used by the gallery to link back.
+
+Without these set, the gallery is still reachable at `/site` and links fall
+back to relative paths.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

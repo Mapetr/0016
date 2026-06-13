@@ -11,8 +11,12 @@ export default defineSchema({
     size: v.number(),
     type: v.string(),
     userId: v.id("users"),
-    pending: v.optional(v.boolean())
-  }).index("byUserId", ["userId"]),
+    pending: v.optional(v.boolean()),
+    // When true the file is published to the public collage site (Glypho).
+    public: v.optional(v.boolean())
+  })
+    .index("byUserId", ["userId"])
+    .index("byPublic", ["public"]),
   links: defineTable({
     slug: v.string(),
     url: v.string()

@@ -43,6 +43,7 @@ describe("FileData schema", () => {
       type: "text/plain",
       size: 123,
       save: false,
+      public: false,
     });
     expect(parsed.success).toBe(true);
   });

@@ -1,0 +1,390 @@
+/* ============================================================
+   glypho — raw internet-native, brutalist monospace
+   Ported from the Claude Design handoff (Glypho.html).
+   Scoped under .glypho-app so it can't leak into the main app.
+   ============================================================ */
+
+.glypho-app {
+  --mono: var(--font-glypho-mono), "JetBrains Mono", "IBM Plex Mono",
+    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* light */
+  --bg: #f4f3ee;
+  --bg-2: #eceae3;
+  --bg-3: #e3e0d6;
+  --fg: #0c0c0c;
+  --fg-2: #3a3a36;
+  --fg-3: #6b6b63;
+  --line: #0c0c0c;
+  --line-soft: #0c0c0c22;
+  --accent: #ff4d2e;
+  --accent-fg: #0c0c0c;
+  --card: #ffffff;
+  --overlay: #0c0c0cee;
+}
+
+.glypho-app.theme-dark {
+  --bg: #0e0e0d;
+  --bg-2: #161614;
+  --bg-3: #1f1f1c;
+  --fg: #f2efe6;
+  --fg-2: #c9c5b7;
+  --fg-3: #8a8679;
+  --line: #f2efe6;
+  --line-soft: #f2efe625;
+  --accent: #ff5a3d;
+  --accent-fg: #0e0e0d;
+  --card: #161614;
+  --overlay: #000000ee;
+}
+
+.glypho-app {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background .15s, color .15s;
+}
+
+.glypho-app *, .glypho-app *::before, .glypho-app *::after { box-sizing: border-box; }
+
+.glypho-app a { color: inherit; cursor: pointer; }
+.glypho-app button { font-family: var(--mono); font-size: 13px; cursor: pointer; }
+.glypho-app input { font-family: var(--mono); font-size: 13px; }
+
+.glypho-app ::selection { background: var(--accent); color: #fff; }
+
+/* ============================================================
+   Header
+   ============================================================ */
+.glypho-app .hdr {
+  position: sticky; top: 0; z-index: 40;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 20px;
+  background: var(--bg);
+  border-bottom: 1.5px solid var(--line);
+}
+.glypho-app .hdr-left { display: flex; align-items: center; gap: 28px; }
+.glypho-app .hdr-nav { display: flex; gap: 14px; }
+.glypho-app .nav-link {
+  font-size: 12px;
+  color: var(--fg-3);
+  text-decoration: none;
+  padding: 4px 0;
+  border-bottom: 1.5px solid transparent;
+  background: transparent;
+  border-top: none; border-left: none; border-right: none;
+}
+.glypho-app .nav-link:hover { color: var(--fg); }
+.glypho-app .nav-link.active { color: var(--fg); border-bottom-color: var(--fg); }
+
+.glypho-app .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.glypho-app .logo-mark {
+  width: 22px; height: 22px;
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px;
+}
+.glypho-app .logo-sq { background: var(--fg); }
+.glypho-app .logo-sq:nth-child(1) { background: var(--accent); }
+.glypho-app .logo-sq:nth-child(4) { background: var(--accent); }
+.glypho-app .logo-word { font-weight: 700; letter-spacing: -0.02em; font-size: 15px; }
+.glypho-app .logo-tag { color: var(--fg-3); font-size: 11px; }
+
+.glypho-app .hdr-search {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-2);
+  border: 1.5px solid var(--line);
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+.glypho-app .hdr-search input {
+  background: transparent; border: none; outline: none; color: var(--fg);
+  flex: 1;
+  min-width: 0;
+}
+.glypho-app .search-prefix { color: var(--accent); font-weight: 700; }
+.glypho-app .search-kbd {
+  padding: 1px 6px;
+  background: var(--bg);
+  border: 1px solid var(--line-soft);
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.glypho-app .hdr-right { display: flex; align-items: center; gap: 10px; }
+.glypho-app .hdr-right .btn { height: 34px; }
+
+.glypho-app .btn {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 8px 14px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: transform .05s, background .1s;
+  text-decoration: none;
+}
+.glypho-app .btn:hover { background: var(--bg-2); }
+.glypho-app .btn:active { transform: translateY(1px); }
+.glypho-app .btn-primary {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.glypho-app .btn-primary:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.glypho-app .btn-ghost { background: transparent; }
+.glypho-app .btn.small { padding: 6px 10px; font-size: 11px; }
+.glypho-app .btn:disabled { opacity: .45; cursor: not-allowed; }
+.glypho-app .btn-icon { font-weight: 700; font-size: 14px; }
+
+@media (max-width: 820px) {
+  .glypho-app .hdr { grid-template-columns: auto auto; }
+  .glypho-app .hdr-search { display: none; }
+}
+
+/* ============================================================
+   Collage
+   ============================================================ */
+.glypho-app .collage { padding: 16px; }
+
+.glypho-app .layout-masonry {
+  column-count: 6;
+  column-gap: 10px;
+}
+.glypho-app .layout-masonry .tile {
+  break-inside: avoid;
+  margin-bottom: 10px;
+  width: 100%;
+  display: block;
+}
+@media (max-width: 1400px) { .glypho-app .layout-masonry { column-count: 5; } }
+@media (max-width: 1100px) { .glypho-app .layout-masonry { column-count: 4; } }
+@media (max-width: 820px)  { .glypho-app .layout-masonry { column-count: 3; } }
+@media (max-width: 560px)  { .glypho-app .layout-masonry { column-count: 2; } }
+
+.glypho-app .tile {
+  position: relative;
+  overflow: hidden;
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  background: var(--bg-2);
+  transition: transform .12s ease;
+  animation: glyphoTileIn .35s ease both;
+}
+.glypho-app .tile:hover { transform: translateY(-2px); box-shadow: 4px 4px 0 var(--line); }
+
+@keyframes glyphoTileIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.glypho-app .tile-img { width: 100%; height: auto; display: block; }
+
+.glypho-app .tile-badge {
+  position: absolute; top: 6px; left: 6px;
+  background: var(--fg); color: var(--bg);
+  font-size: 9px; font-weight: 700;
+  padding: 2px 5px;
+  letter-spacing: 0.08em;
+}
+.glypho-app .tile-badge.lg { font-size: 11px; padding: 4px 8px; top: 10px; left: 10px; }
+
+.glypho-app .tile-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 8px;
+  background: linear-gradient(180deg, transparent 0%, transparent 50%, #000000cc 100%);
+  opacity: 0;
+  transition: opacity .15s;
+  pointer-events: none;
+}
+.glypho-app .tile:hover .tile-overlay { opacity: 1; pointer-events: auto; }
+.glypho-app .tile-bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px; color: #fff; }
+.glypho-app .tile-author {
+  font-size: 11px; opacity: .9;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.glypho-app .tile-actions { display: flex; gap: 4px; }
+.glypho-app .tile-btn {
+  background: rgba(255,255,255,.95);
+  color: #000;
+  border: none;
+  padding: 3px 6px;
+  font-size: 10px;
+  font-family: var(--mono);
+  cursor: pointer;
+}
+.glypho-app .tile-btn:hover { background: var(--accent); color: #fff; }
+
+/* ============================================================
+   Sentinel / Loader / Empty / Footer
+   ============================================================ */
+.glypho-app .sentinel { padding: 30px; text-align: center; }
+.glypho-app .loader {
+  display: inline-flex; align-items: center; gap: 10px;
+  color: var(--fg-3); font-size: 12px;
+  padding: 10px 18px;
+  border: 1.5px solid var(--line-soft);
+}
+.glypho-app .loader-dots { display: inline-flex; gap: 3px; }
+.glypho-app .loader-dots span {
+  width: 6px; height: 6px; background: var(--accent);
+  animation: glyphoDotBounce 1s infinite;
+}
+.glypho-app .loader-dots span:nth-child(2) { animation-delay: .15s; }
+.glypho-app .loader-dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes glyphoDotBounce { 0%, 80%, 100% { opacity: .3; } 40% { opacity: 1; } }
+
+.glypho-app .end-mark { color: var(--fg-3); font-size: 12px; }
+
+.glypho-app .empty {
+  padding: 80px 20px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.glypho-app .empty-title { font-weight: 700; font-size: 16px; }
+.glypho-app .empty-sub { color: var(--fg-3); font-size: 12px; }
+
+.glypho-app .ftr {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr 1.5fr;
+  gap: 24px;
+  padding: 28px 20px;
+  border-top: 1.5px solid var(--line);
+  font-size: 11px;
+  color: var(--fg-3);
+}
+@media (max-width: 820px) { .glypho-app .ftr { grid-template-columns: 1fr 1fr; } }
+.glypho-app .ftr-col a { display: block; color: var(--fg-2); text-decoration: none; padding: 2px 0; }
+.glypho-app .ftr-col a:hover { color: var(--accent); }
+.glypho-app .ftr-h { color: var(--fg); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
+.glypho-app .ftr-col.right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.glypho-app .status-dot { width: 8px; height: 8px; background: #06d6a0; border-radius: 50%; box-shadow: 0 0 0 3px #06d6a022; }
+
+/* ============================================================
+   Lightbox
+   ============================================================ */
+.glypho-app .lb-backdrop {
+  position: fixed; inset: 0;
+  background: var(--overlay);
+  z-index: 200;
+  display: flex;
+  padding: 30px;
+  animation: glyphoFadeIn .15s;
+}
+@keyframes glyphoFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.glypho-app .lb {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  max-width: 1400px;
+  max-height: calc(100vh - 60px);
+  width: 100%;
+  margin: auto;
+  overflow: hidden;
+  animation: glyphoPopIn .2s;
+}
+@media (max-width: 820px) {
+  .glypho-app .lb { grid-template-columns: 1fr; overflow-y: auto; }
+  .glypho-app .lb-backdrop { padding: 12px; }
+}
+@keyframes glyphoPopIn { from { transform: scale(.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.glypho-app .lb-img {
+  position: relative;
+  background: var(--bg-2);
+  max-height: calc(100vh - 60px);
+  overflow: hidden;
+  border-right: 1.5px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+}
+.glypho-app .lb-img img {
+  max-width: 100%;
+  max-height: calc(100vh - 60px);
+  display: block;
+}
+.glypho-app .lb-side {
+  padding: 18px;
+  overflow-y: auto;
+  max-height: calc(100vh - 60px);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.glypho-app .lb-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.glypho-app .lb-title { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; word-break: break-all; }
+.glypho-app .lb-close {
+  background: transparent;
+  border: 1.5px solid var(--line);
+  width: 28px; height: 28px;
+  min-width: 28px;
+  font-size: 18px; line-height: 1;
+  color: var(--fg);
+  padding: 0;
+  cursor: pointer;
+}
+.glypho-app .lb-close:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.glypho-app .lb-row { display: flex; align-items: center; gap: 10px; }
+.glypho-app .lb-author { font-weight: 700; }
+.glypho-app .lb-sub { color: var(--fg-3); font-size: 11px; }
+.glypho-app .lb-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1.5px;
+  border: 1.5px solid var(--line);
+  background: var(--line);
+}
+.glypho-app .lb-stats > div {
+  background: var(--card);
+  padding: 10px 12px;
+  display: flex; flex-direction: column;
+  min-width: 0;
+}
+.glypho-app .lb-k { color: var(--fg-3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+.glypho-app .lb-v { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.glypho-app .lb-section-h {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--fg-3);
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid var(--line-soft);
+}
+.glypho-app .lb-url { display: flex; gap: 6px; }
+.glypho-app .lb-url input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  background: var(--bg-2);
+  border: 1.5px solid var(--line);
+  color: var(--fg);
+  font-size: 11px;
+}
+.glypho-app .lb-actions { display: flex; gap: 6px; }
+.glypho-app .lb-actions .btn { flex: 1; justify-content: center; }
+.glypho-app .lb-meta-foot {
+  margin-top: auto;
+  display: flex; justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1.5px solid var(--line-soft);
+  color: var(--fg-3);
+  font-size: 10px;
+}
+
+.glypho-app .avatar {
+  width: 34px; height: 34px;
+  border: 1.5px solid var(--line);
+  background: var(--bg-2);
+  padding: 0;
+}
+.glypho-app .avatar.small { width: 28px; height: 28px; }
+.glypho-app .avatar-inner {
+  width: 100%; height: 100%;
+  background: conic-gradient(from 45deg, var(--accent), #7209b7, #06d6a0, var(--accent));
+}

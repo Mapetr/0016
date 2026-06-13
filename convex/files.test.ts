@@ -53,6 +53,7 @@ const validArgs = {
   type: "text/plain",
   size: 1000,
   save: false,
+  public: false,
   turnstileToken: "tok",
   identifier: "ip:1.2.3.4",
 };
@@ -205,6 +206,53 @@ describe("getUploadUrl", () => {
     expect(files[0].url).toBe(
       `${process.env.DESTINATION_URL}${new URL(url).pathname}`
     );
+  });
+});
+
+describe("getPublicFiles", () => {
+  test("rejects publishing without saving to account", async () => {
+    const t = convexTest(schema, modules);
+    await createUser(t);
+    const asUser = t.withIdentity(identity);
+    await expect(
+      asUser.action(internal.files.getUploadUrl, {
+        ...validArgs,
+        save: false,
+        public: true,
+      })
+    ).rejects.toThrow("Cannot publish to the site without saving to account");
+  });
+
+  test("shows only confirmed public files with author names", async () => {
+    const t = convexTest(schema, modules);
+    await createUser(t);
+    const asUser = t.withIdentity(identity);
+
+    const publicId = await asUser.mutation(internal.files.saveFile, {
+      url: "https://files.test/abc/public.gif",
+      type: "image/gif",
+      size: 1000,
+      public: true,
+    });
+    // Private file — must never appear in the public feed
+    const privateId = await asUser.mutation(internal.files.saveFile, {
+      url: "https://files.test/abc/private.png",
+      type: "image/png",
+      size: 1000,
+    });
+    await asUser.mutation(api.files.confirmUpload, { fileId: privateId });
+
+    // Still pending — hidden from the public feed
+    expect((await t.query(api.files.getPublicFiles, paginate)).page).toEqual(
+      []
+    );
+
+    await asUser.mutation(api.files.confirmUpload, { fileId: publicId });
+
+    const page = (await t.query(api.files.getPublicFiles, paginate)).page;
+    expect(page).toHaveLength(1);
+    expect(page[0].url).toBe("https://files.test/abc/public.gif");
+    expect(page[0].author).toBe("Test User");
   });
 });
 

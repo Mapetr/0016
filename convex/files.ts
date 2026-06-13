@@ -70,6 +70,7 @@ export const getUploadUrl = internalAction({
     type: v.string(),
     size: v.number(),
     save: v.boolean(),
+    public: v.boolean(),
     turnstileToken: v.string(),
     identifier: v.string(),
   },
@@ -85,6 +86,13 @@ export const getUploadUrl = internalAction({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity && args.save) {
       throw new Error("Saving a file to account without an account");
+    }
+
+    // Publishing to the public collage requires an account (author
+    // attribution) and implies saving the file to that account.
+    const makePublic = args.public && args.save;
+    if (args.public && !args.save) {
+      throw new Error("Cannot publish to the site without saving to account");
     }
 
     const isValidToken = await verifyTurnstileToken(args.turnstileToken);
@@ -137,6 +145,7 @@ export const getUploadUrl = internalAction({
           url: `${process.env.DESTINATION_URL}${new URL(shortUrl).pathname}`,
           type: args.type,
           size: args.size,
+          public: makePublic,
         });
         await ctx.scheduler.runAfter(1200 * 1000, internal.files.deleteIfPending, {
           fileId
@@ -152,6 +161,7 @@ export const saveFile = internalMutation({
     url: v.string(),
     type: v.string(),
     size: v.number(),
+    public: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrThrow(ctx);
@@ -160,7 +170,8 @@ export const saveFile = internalMutation({
       type: args.type,
       size: args.size,
       userId: user._id,
-      pending: true
+      pending: true,
+      public: args.public === true
     });
   }
 })
@@ -176,6 +187,36 @@ export const confirmUpload = mutation({
       throw new Error("File not found");
     }
     await ctx.db.patch(args.fileId, { pending: false });
+  }
+});
+
+// Public collage feed (Glypho). No auth — only rows explicitly published
+// with the "add to site" checkbox, and only confirmed (non-pending) uploads.
+export const getPublicFiles = query({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("files")
+      .withIndex("byPublic", q => q.eq("public", true))
+      .filter(row => row.neq(row.field("pending"), true))
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    const page = await Promise.all(
+      result.page.map(async (file) => {
+        const author = await ctx.db.get(file.userId);
+        return {
+          _id: file._id,
+          _creationTime: file._creationTime,
+          url: file.url,
+          type: file.type,
+          size: file.size,
+          author: author?.name ?? "anonymous",
+        };
+      })
+    );
+
+    return { ...result, page };
   }
 });
 
