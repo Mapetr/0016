@@ -306,6 +306,56 @@ describe("deleteIfPending", () => {
   });
 });
 
+describe("deleteFile", () => {
+  test("removes the owner's file from their list", async () => {
+    const t = convexTest(schema, modules);
+    await createUser(t);
+    const asUser = t.withIdentity(identity);
+
+    const fileId = await asUser.mutation(internal.files.saveFile, {
+      url: "https://files.test/abc/test.txt",
+      type: "text/plain",
+      size: 1000,
+    });
+    await asUser.mutation(api.files.confirmUpload, { fileId });
+
+    expect((await asUser.query(api.files.getFiles, paginate)).page).toHaveLength(
+      1
+    );
+
+    await asUser.mutation(api.files.deleteFile, { fileId });
+
+    expect((await asUser.query(api.files.getFiles, paginate)).page).toEqual([]);
+  });
+
+  test("rejects deleting someone else's file", async () => {
+    const t = convexTest(schema, modules);
+    await createUser(t);
+    const asUser = t.withIdentity(identity);
+
+    const fileId = await asUser.mutation(internal.files.saveFile, {
+      url: "https://files.test/abc/test.txt",
+      type: "text/plain",
+      size: 1000,
+    });
+
+    await t.mutation(internal.users.upsertFromClerk, {
+      data: { id: "clerk_user_2", first_name: "Other", last_name: "User" } as UserJSON,
+    });
+    const asOther = t.withIdentity({ subject: "clerk_user_2" });
+
+    await expect(
+      asOther.mutation(api.files.deleteFile, { fileId })
+    ).rejects.toThrow("File not found");
+
+    // Untouched for the owner
+    await asUser.mutation(api.files.confirmUpload, { fileId });
+    expect((await asUser.query(api.files.getFiles, paginate)).page).toHaveLength(
+      1
+    );
+  });
+});
+
 describe("/getUploadUrl http route", () => {
   test("returns 400 on invalid JSON body", async () => {
     const t = convexTest(schema, modules);
