@@ -1,7 +1,7 @@
 import { internalAction, internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { internal } from "@/convex/_generated/api";
 import { getCurrentUser, getCurrentUserOrThrow } from "@/convex/users";
@@ -217,6 +217,56 @@ export const getPublicFiles = query({
     );
 
     return { ...result, page };
+  }
+});
+
+export const deleteFile = mutation({
+  args: {
+    fileId: v.id("files")
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    const file = await ctx.db.get(args.fileId);
+    // Owner check — a user can only delete their own rows. Mirror the
+    // "File not found" wording so we don't leak whether the id exists.
+    if (!file || file.userId !== user._id) {
+      throw new Error("File not found");
+    }
+    await ctx.db.delete(args.fileId);
+    // Drop the row immediately; reap the S3 object in a follow-up action
+    // (mutations can't run the S3 client). Orphaned objects are harmless if
+    // this fails.
+    await ctx.scheduler.runAfter(0, internal.files.deleteFromS3, {
+      url: file.url
+    });
+  }
+});
+
+export const deleteFromS3 = internalAction({
+  args: {
+    url: v.string()
+  },
+  handler: async (_ctx, args) => {
+    // Stored url is `${DESTINATION_URL}${pathname}`; the S3 key is that
+    // pathname without its leading slash.
+    const key = new URL(args.url).pathname.replace(/^\/+/, "");
+    if (!key) return;
+
+    const s3Client = new S3Client({
+      region: process.env.S3_REGION,
+      endpoint: process.env.S3_ENDPOINT,
+      credentials: {
+        accessKeyId: process.env.S3_ACCESS_KEY ?? "",
+        secretAccessKey: process.env.S3_SECRET_KEY ?? ""
+      }
+    });
+
+    await s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: process.env.S3_BUCKET,
+        Key: key
+      })
+    );
   }
 });
 

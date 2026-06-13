@@ -1,8 +1,10 @@
 "use client";
 
-import { useConvexAuth, usePaginatedQuery } from "convex/react";
+import { useConvexAuth, useMutation, usePaginatedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import { ColumnDef, getCoreRowModel } from "@tanstack/table-core";
 import { Doc } from "@/convex/_generated/dataModel";
@@ -18,6 +20,37 @@ import {
 import Link from "next/link";
 import { formatBytes } from "@/lib/utils";
 import { toast } from "sonner";
+
+function DeleteButton({ file }: { file: Doc<"files"> }) {
+  const deleteFile = useMutation(api.files.deleteFile);
+  const [deleting, setDeleting] = useState(false);
+
+  const onDelete = async () => {
+    if (!window.confirm("Delete this file? This cannot be undone.")) return;
+    setDeleting(true);
+    try {
+      await deleteFile({ fileId: file._id });
+      toast.success("File deleted");
+    } catch {
+      toast.error("Failed to delete file");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={onDelete}
+      disabled={deleting}
+      aria-label="Delete file"
+      className="text-muted-foreground hover:text-destructive"
+    >
+      <Trash2 />
+    </Button>
+  );
+}
 
 const columns: ColumnDef<Doc<"files">>[] = [
   {
@@ -69,6 +102,17 @@ const columns: ColumnDef<Doc<"files">>[] = [
       );
     },
   },
+  {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => {
+      return (
+        <div className="flex justify-end">
+          <DeleteButton file={row.original} />
+        </div>
+      );
+    },
+  },
 ];
 
 // Mobile card component for each file
@@ -81,14 +125,17 @@ function FileCard({ file }: { file: Doc<"files"> }) {
   return (
     <div className="border-b border-border py-4 last:border-b-0">
       <div className="flex flex-col gap-2">
-        <Link
-          href={file.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="break-all text-base font-medium leading-tight hover:underline"
-        >
-          {file.url.split("/").pop() || file.url}
-        </Link>
+        <div className="flex items-start justify-between gap-2">
+          <Link
+            href={file.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="break-all text-base font-medium leading-tight hover:underline"
+          >
+            {file.url.split("/").pop() || file.url}
+          </Link>
+          <DeleteButton file={file} />
+        </div>
         <p
           className="cursor-pointer break-all text-sm text-muted-foreground hover:underline"
           onClick={copyUrl}
