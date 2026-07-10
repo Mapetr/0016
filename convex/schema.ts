@@ -4,7 +4,10 @@ import { v } from "convex/values";
 export default defineSchema({
   users: defineTable({
     name: v.string(),
-    externalId: v.string()
+    externalId: v.string(),
+    // Synced from Clerk publicMetadata.unlimitedUploads via the users webhook.
+    // When true, the per-file upload size limit does not apply.
+    unlimitedUploads: v.optional(v.boolean())
   }).index("byExternalId", ["externalId"]),
   files: defineTable({
     url: v.string(),

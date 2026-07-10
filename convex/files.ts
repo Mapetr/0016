@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { internal } from "@/convex/_generated/api";
+import { api, internal } from "@/convex/_generated/api";
 import { getCurrentUser, getCurrentUserOrThrow } from "@/convex/users";
 import { Id } from "./_generated/dataModel";
 import { uploadRatelimit, verifyTurnstileToken } from "@/convex/ratelimit";
@@ -38,9 +38,15 @@ function getMaxUploadSize() {
   return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_MAX_SIZE;
 }
 
+// Returns null when the current user has no upload size limit
+// (Clerk publicMetadata.unlimitedUploads, synced to the users table).
 export const getMaxSize = query({
   args: {},
-  handler: () => {
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (user?.unlimitedUploads) {
+      return null;
+    }
     return getMaxUploadSize();
   }
 });
@@ -110,7 +116,12 @@ export const getUploadUrl = internalAction({
     }
 
     if (args.size > getMaxUploadSize()) {
-      throw new Error("File is too big");
+      // The unlimitedUploads flag lives on the Convex user row (synced from
+      // Clerk publicMetadata), so look it up only when the limit is exceeded.
+      const user = identity ? await ctx.runQuery(api.users.current, {}) : null;
+      if (!user?.unlimitedUploads) {
+        throw new Error("File is too big");
+      }
     }
 
       const s3Client = new S3Client({

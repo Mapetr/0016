@@ -530,7 +530,9 @@ export function FileUpload() {
         Upload
       </Button>
       <span className={"text-sm text-secondary-foreground"}>
-        Max {formatBytes(getMaxSize ?? 250000000)} file size
+        {getMaxSize === null
+          ? "No file size limit"
+          : `Max ${formatBytes(getMaxSize ?? 250000000)} file size`}
       </span>
     </div>
   );
