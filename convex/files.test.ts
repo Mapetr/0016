@@ -38,12 +38,16 @@ function stubNetwork({ turnstileOk }: { turnstileOk: boolean }) {
   );
 }
 
-async function createUser(t: ReturnType<typeof convexTest>) {
+async function createUser(
+  t: ReturnType<typeof convexTest>,
+  publicMetadata?: Record<string, unknown>
+) {
   await t.mutation(internal.users.upsertFromClerk, {
     data: {
       id: identity.subject,
       first_name: "Test",
       last_name: "User",
+      public_metadata: publicMetadata,
     } as UserJSON,
   });
 }
@@ -73,6 +77,20 @@ describe("getMaxSize", () => {
     const t = convexTest(schema, modules);
     expect(await t.query(api.files.getMaxSize, {})).toBe(1234);
     vi.stubEnv("MAX_SIZE", "");
+  });
+
+  test("returns null for users with unlimited uploads", async () => {
+    const t = convexTest(schema, modules);
+    await createUser(t, { unlimitedUploads: true });
+    const asUser = t.withIdentity(identity);
+    expect(await asUser.query(api.files.getMaxSize, {})).toBeNull();
+  });
+
+  test("returns the limit for users without the flag", async () => {
+    const t = convexTest(schema, modules);
+    await createUser(t);
+    const asUser = t.withIdentity(identity);
+    expect(await asUser.query(api.files.getMaxSize, {})).toBe(250000000);
   });
 });
 
@@ -155,6 +173,33 @@ describe("getUploadUrl", () => {
         size: 250000001,
       })
     ).rejects.toThrow("File is too big");
+  });
+
+  test("rejects oversized files for signed-in users without the flag", async () => {
+    const t = convexTest(schema, modules);
+    await createUser(t);
+    stubNetwork({ turnstileOk: true });
+    const asUser = t.withIdentity(identity);
+
+    await expect(
+      asUser.action(internal.files.getUploadUrl, {
+        ...validArgs,
+        size: 250000001,
+      })
+    ).rejects.toThrow("File is too big");
+  });
+
+  test("allows oversized files for users with unlimited uploads", async () => {
+    const t = convexTest(schema, modules);
+    await createUser(t, { unlimitedUploads: true });
+    stubNetwork({ turnstileOk: true });
+    const asUser = t.withIdentity(identity);
+
+    const { url } = await asUser.action(internal.files.getUploadUrl, {
+      ...validArgs,
+      size: 250000001,
+    });
+    expect(new URL(url).searchParams.get("X-Amz-Signature")).toBeTruthy();
   });
 
   test("returns a presigned url and no fileId for anonymous uploads", async () => {

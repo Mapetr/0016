@@ -51,6 +51,26 @@ describe("upsertFromClerk", () => {
       .query(api.users.current, {});
     expect(user?.name).toBe("Renamed User");
   });
+
+  test("syncs unlimitedUploads from Clerk public metadata", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.users.upsertFromClerk, {
+      data: clerkUser({
+        public_metadata: { unlimitedUploads: true },
+      } as Partial<UserJSON>),
+    });
+
+    const asUser = t.withIdentity({ subject: "clerk_user_1" });
+    expect((await asUser.query(api.users.current, {}))?.unlimitedUploads).toBe(
+      true
+    );
+
+    // Removing the flag in Clerk revokes it here on the next webhook
+    await t.mutation(internal.users.upsertFromClerk, { data: clerkUser() });
+    expect((await asUser.query(api.users.current, {}))?.unlimitedUploads).toBe(
+      false
+    );
+  });
 });
 
 describe("deleteFromClerk", () => {
